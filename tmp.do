@@ -7,7 +7,7 @@ global ZIPS_AERMOD ../data/zips_aermod                      // Core AERMOD data
 global ZIPS_AERMOD_SYMM ../data/zips_aermod_symmetric.dta   // Derived from AERMOD
 global OUT_PATH ..\out                                      // Folder for output
 
-global SAVE 0       // Switch for over-writing past results
+global SAVE 1       // Switch for over-writing past results
 global FAKEDATA 1   // Switch for using fake data (ZIP + "0000" fix)
 
 
@@ -23,15 +23,20 @@ end
 
 
 prog def _gen_aermod_pre_post
-    cap confirm file $ZIPS_AERMOD_SYMM   // If file already exists, do nothing
+    * Create multi-year averages of AERMOD exposure centered around 2000/2001 shock.
+
+    * If file already exists, do nothing
+    cap confirm file $ZIPS_AERMOD_SYMM
     if !_rc & 1 {
         exit
     }
+
     di "Creating $ZIPS_AERMOD_SYMM"
     preserve
     clear
 
     use $ZIPS_AERMOD
+
     egen aermod_pre_1 = rowmean(aermod_2000*)
     egen aermod_post_1 = rowmean(aermod_2001*)
 
@@ -90,7 +95,8 @@ prog def data_prep
     merge m:1 zip4 using $ZIPS_AERMOD_SYMM, keep(1 3) nogen
 
     * Merge in Block Group/Tract
-    merge m:1 zip4 using $ZIPS_GEODATA, keep(1 3) keepusing(blkgrp) nogen
+    local keep_vars blkgrp
+    merge m:1 zip4 using $ZIPS_GEODATA, keep(1 3) keepusing(`keep_vars') nogen
     gen tract = substr(blkgrp, 1, 11)
 
     * Age bins
@@ -172,6 +178,18 @@ local outcomes death_date ami_ever
 // Time horizon for outcomes (e.g., 3-year mortality)
 local timespans 1 3 5 10
 
+foreach outcome in `outcomes' {
+    foreach timespan in `timespans' {
+        main_reg `outcome' `timespan' `replace'
+        local replace
+    }
+}
+
+
+* Interact aermod_diff with age bins
+global X c.aermod_diff#i.agebins aermod_pre
+global OUT_NAME "regs_interact_age"
+local replace replace
 foreach outcome in `outcomes' {
     foreach timespan in `timespans' {
         main_reg `outcome' `timespan' `replace'
