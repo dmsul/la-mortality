@@ -1,3 +1,7 @@
+/*
+Regress "heath outcome realized w/in X years of pollution shock" on change in
+pollution exposure as measured by AERMOD.
+*/
 clear all
 set more off
 
