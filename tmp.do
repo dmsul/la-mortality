@@ -2,9 +2,10 @@ clear all
 set more off
 
 global BENE_DATA ../data/data_fake                          // Core Medicare data
-global ZIPS_GEODATA ../data/zip4                            // Lat/lon, Census
 global ZIPS_AERMOD ../data/zips_aermod                      // Core AERMOD data
 global ZIPS_AERMOD_SYMM ../data/zips_aermod_symmetric.dta   // Derived from AERMOD
+global ZIPS_BLOCK2000 ../data/zip4s_block2000.dta           // X-walk, zip4->block2000
+global BLOCKGROUP_INFO ../data/blockgroup_2000              // Demographic info
 global OUT_PATH ..\out                                      // Folder for output
 
 global SAVE 1       // Switch for over-writing past results
@@ -57,7 +58,6 @@ end
 prog def data_prep
     use $BENE_DATA
     drop state* county*
-    keep if startyear_geo_movein <= 1999
 
     * Get last year person lives in ZIP+4 given in `startyear_geo_movein`
     // Calculate first year in sample
@@ -95,9 +95,13 @@ prog def data_prep
     merge m:1 zip4 using $ZIPS_AERMOD_SYMM, keep(1 3) nogen
 
     * Merge in Block Group/Tract
-    local keep_vars blkgrp
-    merge m:1 zip4 using $ZIPS_GEODATA, keep(1 3) keepusing(`keep_vars') nogen
+    merge m:1 zip4 using $ZIPS_BLOCK2000, keep(1 3) nogen
+    gen blkgrp = substr(block2000, 1, 12)
     gen tract = substr(blkgrp, 1, 11)
+    drop block2000
+    gen bg = blkgrp
+    merge m:1 bg using $BLOCKGROUP_INFO, keep(1 3) nogen
+    drop bg
 
     * Age bins
     gen age_in_2000 = (date("1/1/2001", "MDY") - bene_birth_dt) / 365
@@ -110,6 +114,9 @@ prog def data_prep
         local i = `i' + 1
     }
     drop agebin_0
+
+    * New cancer variable
+    egen cancer_any_ever = rowmin(cancer*ever)
 end
 
 
@@ -124,7 +131,8 @@ prog def main_reg
     cap drop sample
     gen sample = ///
         outcome_years_after_treat > 0 & ///  Didn't have 'outcome' before treatment
-        stayer_thru_year >= 2002 & ///       Didn't move before 2002
+        startyear_geo_movein < 1999 & ///   Moved in before 1999
+        stayer_thru_year >= 2002 & ///       Didn't move out before 2002
         enter_sample_year <= 2000 & ///      Observed in sample before treatment
         age_in_2000 >= 65 //                 At least 65 before treatment
 
@@ -138,11 +146,9 @@ prog def main_reg
     cap drop aermod_diff
     local aermod_diff_band = min(`timespan', 5)  // Max AERMOD diff is 5 years
     gen aermod_pre = aermod_pre_`aermod_diff_band'
-    gen aermod_diff = aermod_pre - aermod_post_`aermod_diff_band'
+    gen aermod_diff = aermod_post_`aermod_diff_band' - aermod_pre
 
     *** Regression ***
-    global X aermod_diff aermod_pre        // X's of interest
-    global W agebin_67-agebin_90            // Other Controls
 
     reg outcome_within_limit $X $W if sample, cluster(blkgrp) // a(tract)
 
@@ -158,12 +164,8 @@ prog def main_reg
     qui summ outcome_within_limit
     local outcome_mean = `r(mean)'
 
-    if $SAVE {
-        global OUT_NAME "regs_main"
-        outreg2 using $OUT_PATH\$OUT_NAME.xls, excel `replace' ///
-            ctitle("`outcome_label'") addstat("Outcome mean", `outcome_mean')
-    }
-
+    outreg2 using "${OUT_PATH}/${OUT_NAME}.xls", excel `replace' ///
+        ctitle("`outcome_label'") addstat("Outcome mean", `outcome_mean')
 end
 
 }
@@ -172,11 +174,24 @@ end
 verify_out_path
 data_prep
 
-* Main regression loop
-// Health outcomes to examine
-local outcomes death_date ami_ever 
-// Time horizon for outcomes (e.g., 3-year mortality)
-local timespans 1 3 5 10
+** Regressions
+
+local outcomes /// Health outcomes to examine
+    death_date ami_ever alzh_ever copd_ever diabetes_ever hip_fracture_ever ///
+    stroke_tia_ever cancer_lung_ever cancer_any_ever asthma_ever ///
+    majordepression_ever migraine_ever
+local timespans 1 3 5 10  // Time horizon for outcomes (e.g., 3-year mortality)
+
+* Basic Specification
+global OUT_NAME "regs_main"
+global X aermod_diff aermod_pre        // X's of interest
+global W ///                           // Other controls
+    agebin_67-agebin_90 ///
+    bg_pct_8th_or_less bg_pct_9th_to_12th bg_pct_some_coll bg_pct_assoc_degree ///
+    bg_pct_bach_degree bg_pct_grad_degree ///
+    bg_pct_black bg_pct_hispanic ///
+    bg_pct_renter_occ bg_pct_vacant bg_med_house_value ///
+    bg_med_hh_inc
 
 foreach outcome in `outcomes' {
     foreach timespan in `timespans' {
@@ -185,10 +200,9 @@ foreach outcome in `outcomes' {
     }
 }
 
-
 * Interact aermod_diff with age bins
-global X c.aermod_diff#i.agebins aermod_pre
 global OUT_NAME "regs_interact_age"
+global X c.aermod_diff#i.agebins aermod_pre
 local replace replace
 foreach outcome in `outcomes' {
     foreach timespan in `timespans' {
