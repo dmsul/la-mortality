@@ -12,7 +12,7 @@ global ZIPS_BLOCK2000 ../data/zip4s_block2000.dta           // X-walk, zip4->blo
 global BLOCKGROUP_INFO ../data/blockgroup_2000              // Demographic info
 global OUT_PATH ..\out                                      // Folder for output
 
-global FAKEDATA 0   // Switch for using fake data (ZIP + "0000" fix)
+global FAKEDATA = c(username) == "sullivan"   // Switch for using fake data (ZIP + "0000" fix)
 
 
 qui {
@@ -130,17 +130,6 @@ prog def main_reg
     cap drop outcome_years_after_treat
     gen outcome_years_after_treat = (`outcome' - date("1/1/2001", "MDY")) / 365
 
-    * Sample restriction
-    cap drop sample
-    gen sample = ///
-        outcome_years_after_treat > 0 & ///  Didn't have 'outcome' before treatment
-        startyear_geo_movein < 1999 & ///    Moved in before 1999
-        stayer_thru_year >= 2002 & ///       Didn't move out before 2002
-        enter_sample_year <= 2000 & ///      Observed in sample before treatment
-        aermod_pre > 0 & ///                 Non-zero pollution exposure
-        age_in_2000 >= 65 //                 At least 65 before treatment
-
-
     * Gen Y var
     cap drop outcome_within_limit
     gen outcome_within_limit = outcome_years_after_treat <= `timespan'
@@ -151,6 +140,17 @@ prog def main_reg
     local aermod_diff_band = min(`timespan', 5)  // Max AERMOD diff is 5 years
     gen aermod_pre = aermod_pre_`aermod_diff_band'
     gen aermod_diff = aermod_post_`aermod_diff_band' - aermod_pre
+
+    * Sample restriction
+    cap drop sample
+    gen sample = ///
+        outcome_years_after_treat > 0 & ///  Didn't have 'outcome' before treatment
+        startyear_geo_movein < 1999 & ///    Moved in before 1999
+        stayer_thru_year >= 2002 & ///       Didn't move out before 2002
+        enter_sample_year <= 2000 & ///      Observed in sample before treatment
+        aermod_pre > 0 & ///                 Non-zero pollution exposure
+        age_in_2000 >= 65 //                 At least 65 before treatment
+
 
     *** Regression ***
 
