@@ -12,8 +12,7 @@ global ZIPS_BLOCK2000 ../data/zip4s_block2000.dta           // X-walk, zip4->blo
 global BLOCKGROUP_INFO ../data/blockgroup_2000              // Demographic info
 global OUT_PATH ..\out                                      // Folder for output
 
-global SAVE 1       // Switch for over-writing past results
-global FAKEDATA 1   // Switch for using fake data (ZIP + "0000" fix)
+global FAKEDATA 0   // Switch for using fake data (ZIP + "0000" fix)
 
 
 qui {
