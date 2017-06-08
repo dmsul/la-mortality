@@ -134,9 +134,10 @@ prog def main_reg
     cap drop sample
     gen sample = ///
         outcome_years_after_treat > 0 & ///  Didn't have 'outcome' before treatment
-        startyear_geo_movein < 1999 & ///   Moved in before 1999
+        startyear_geo_movein < 1999 & ///    Moved in before 1999
         stayer_thru_year >= 2002 & ///       Didn't move out before 2002
         enter_sample_year <= 2000 & ///      Observed in sample before treatment
+        aermod_pre > 0 & ///                 Non-zero pollution exposure
         age_in_2000 >= 65 //                 At least 65 before treatment
 
 
