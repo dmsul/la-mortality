@@ -148,7 +148,7 @@ prog def main_reg
         startyear_geo_movein < 1999 & ///    Moved in before 1999
         stayer_thru_year >= 2002 & ///       Didn't move out before 2002
         enter_sample_year <= 2000 & ///      Observed in sample before treatment
-        aermod_pre > 0 & aermod_pre < . ///  Non-zero pollution exposure
+        aermod_pre > 0 & aermod_pre < . & ///Non-zero pollution exposure
         age_in_2000 >= 65 //                 At least 65 before treatment
 
     *** Regression ***
@@ -205,7 +205,7 @@ local timespans 1 3 5 10  // Time horizon for outcomes (e.g., 3-year mortality)
 global OUT_NAME "regs_main"
 global X aermod_diff aermod_pre        // X's of interest
 global W ///                           // Other controls
-    agebin_67-agebin_90 ///
+    agebin_67-agebin_90 male ///
     bg_pct_8th_or_less bg_pct_9th_to_12th bg_pct_some_coll bg_pct_assoc_degree ///
     bg_pct_bach_degree bg_pct_grad_degree ///
     bg_pct_black bg_pct_hispanic ///
