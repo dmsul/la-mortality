@@ -1,3 +1,6 @@
+"""
+Note: Source pickle (bg_demogs_2000.pkl) copied from poll-house.
+"""
 from __future__ import division
 
 import pandas as pd

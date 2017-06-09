@@ -1,9 +1,13 @@
+from __future__ import division
+
 import numpy as np
 import pandas as pd
 import pyproj
 
+from econtools import load_or_build
 
-# `econtools` isn't ready for python3
+
+@load_or_build('../data/zip4_utm.dta')
 def zip4_utms():
     """ Create table of ZIP+4 utm (real) and utm rounded to 100 m. """
     df = pd.read_stata('../data/ZIP4.dta')
@@ -23,8 +27,6 @@ def zip4_utms():
     zip4 = zip4.drop(['lon', 'lat'], axis=1)
 
     zip4 = zip4.set_index('zip4')
-
-    zip4.to_stata('../data/zip4_utm.dta')
 
     return zip4
 

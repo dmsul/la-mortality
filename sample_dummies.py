@@ -1,11 +1,41 @@
 """
-Create flags for ZIP+4's whether they're in the coastal sample.
+Create flags for "ZIP+4 is in the coastal sample."
 """
 import pandas as pd
 import numpy as np
 from scipy.spatial.distance import cdist
 
+from econtools import load_or_build
+
+from get_zip_utm import zip4_utms
+
+
 UTM = ['utm_east', 'utm_north']
+
+
+@load_or_build('../data/zips_coast_flag.dta')
+def get_zip4_coast_flag():
+    zip_utm = zip4_utms()
+
+    samp = center_sw(zip_utm, maxdist=10)
+    samp = samp.set_index('zip4')
+    samp['samp_std'] = 1
+
+    zip_utm = zip_utm.join(samp[['samp_std']], on='zip4', how='left')
+    zip_utm['samp_std'] = zip_utm['samp_std'].fillna(0).astype(int)
+
+    # Do it again for convex coastal samp
+    samp = center_sw(zip_utm, maxdist=10, convex=True)
+    samp = samp.set_index('zip4')
+    samp['samp_convex'] = 1
+
+    zip_utm = zip_utm.join(samp[['samp_convex']], on='zip4', how='left')
+    zip_utm['samp_convex'] = zip_utm['samp_convex'].fillna(0).astype(int)
+
+    zip_samp = zip_utm.set_index('zip4')[['samp_std', 'samp_convex']].copy()
+
+    return zip_samp
+
 
 def center_sw(regdata, maxdist=10, convex=False):
     df = regdata.reset_index()
@@ -99,21 +129,4 @@ def getdist(base, target, within=0):
 
 
 if __name__ == '__main__':
-    zip_utm = pd.read_stata('../data/zip4_utm.dta')
-
-    samp = center_sw(zip_utm, maxdist=10)
-    samp = samp.set_index('zip4')
-    samp['samp_std'] = 1
-
-    zip_utm = zip_utm.join(samp[['samp_std']], on='zip4', how='left')
-    zip_utm['samp_std'] = zip_utm['samp_std'].fillna(0).astype(int)
-
-    samp = center_sw(zip_utm, maxdist=10, convex=True)
-    samp = samp.set_index('zip4')
-    samp['samp_convex'] = 1
-
-    zip_utm = zip_utm.join(samp[['samp_convex']], on='zip4', how='left')
-    zip_utm['samp_convex'] = zip_utm['samp_convex'].fillna(0).astype(int)
-
-    zip_samp = zip_utm.set_index('zip4')[['samp_std', 'samp_convex']].copy()
-    zip_samp.to_stata('../data/zips_coast_flag.dta')
+    df = get_zip4_coast_flag()

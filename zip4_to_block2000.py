@@ -1,3 +1,7 @@
+"""
+Build spatial index of Census 2000 blocks (if necessary) and match XY points
+(zip4) to blocks.
+"""
 from os import path
 
 import pandas as pd

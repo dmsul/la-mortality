@@ -1,9 +1,16 @@
+from __future__ import division
+
 import pandas as pd
 import numpy as np
 
+from econtools import load_or_build
 
+from get_zip_utm import zip4_utms
+
+
+@load_or_build('../data/zips_aermod_pre.dta')
 def load_zips_aermod_pre():
-    df = pd.read_stata('../data/zips_aermod.dta')
+    df = load_zips_aermod()
     df = df.set_index('zip4')
 
     pre_cols = ['aermod_1995q1', 'aermod_1995q2', 'aermod_1995q3',
@@ -11,15 +18,13 @@ def load_zips_aermod_pre():
                 'aermod_1996q3', 'aermod_1996q4']
     aermod_pre = df[pre_cols].mean(axis=1).to_frame('aermod_pre')
 
-    if 1:
-        aermod_pre.to_stata('../data/zips_aermod_pre.dta')
-
     return aermod_pre
 
 
+@load_or_build('../data/zips_aermod.dta')
 def load_zips_aermod():
     df = grids_wide()
-    utm = pd.read_stata('../data/zip4_utm.dta')
+    utm = zip4_utms()
 
     utm = utm.set_index(['utm_east', 'utm_north'])
     utm = utm.drop(['utm_east_real', 'utm_north_real'], axis=1)
@@ -29,9 +34,6 @@ def load_zips_aermod():
     zips_aermod = zips_aermod.set_index('zip4')
 
     zips_aermod = zips_aermod.astype(np.float32)
-
-    if 1:
-        zips_aermod.to_stata('../data/zips_aermod.dta')
 
     return zips_aermod
 
@@ -47,5 +49,5 @@ def grids_wide():
 
 
 if __name__ == '__main__':
-    # df = load_zips_aermod()
-    df = load_zips_aermod_pre()
+    df = load_zips_aermod()
+    # df = load_zips_aermod_pre()
