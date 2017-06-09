@@ -159,6 +159,11 @@ prog def main_reg
 
     reg outcome_within_limit $X $W if sample, cluster(blkgrp) // a(tract)
 
+    * Diagnostics
+    cap drop in_reg
+    gen in_reg = e(sample)
+    tab sample in_reg
+
     * Format text for `outreg2`
     if "`outcome'" == "death_date" {
         local outcome_label "Mort."
