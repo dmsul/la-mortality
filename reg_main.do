@@ -148,12 +148,8 @@ prog def main_reg
         startyear_geo_movein < 1999 & ///    Moved in before 1999
         stayer_thru_year >= 2002 & ///       Didn't move out before 2002
         enter_sample_year <= 2000 & ///      Observed in sample before treatment
-        aermod_pre > 0 & ///                 Non-zero pollution exposure
+        aermod_pre > 0 & aermod_pre < . ///  Non-zero pollution exposure
         age_in_2000 >= 65 //                 At least 65 before treatment
-
-    tab sample
-    count if sample & bg_pct_9th_to_12th == .
-
 
     *** Regression ***
 
@@ -163,6 +159,14 @@ prog def main_reg
     cap drop in_reg
     gen in_reg = e(sample)
     tab sample in_reg
+    count if sample & bg_pct_9th_to_12th == .
+    count if outcome_years_after_treat > 0
+    count if startyear_geo_movein < 1999
+    count if stayer_thru_year >= 2002
+    count if enter_sample_year <= 2000
+    count if aermod_pre > 0
+    count if age_in_2000 >= 65
+
 
     * Format text for `outreg2`
     if "`outcome'" == "death_date" {
@@ -210,6 +214,7 @@ global W ///                           // Other controls
 
 foreach outcome in `outcomes' {
     foreach timespan in `timespans' {
+        di "Main: `outcome' `timespan'"
         main_reg `outcome' `timespan' `replace'
         local replace
     }
@@ -221,6 +226,7 @@ global X c.aermod_diff#i.agebins aermod_pre
 local replace replace
 foreach outcome in `outcomes' {
     foreach timespan in `timespans' {
+        di "Age interact: `outcome' `timespan'"
         main_reg `outcome' `timespan' `replace'
         local replace
     }
