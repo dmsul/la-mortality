@@ -177,7 +177,7 @@ prog def main_reg
     }
     local outcome_label = "`outcome_label' (`timespan'-yr)"
 
-    qui summ outcome_within_limit
+    qui summ outcome_within_limit if in_reg
     local outcome_mean = `r(mean)'
 
     outreg2 using "${OUT_PATH}/${OUT_NAME}.xls", excel `replace' ///
