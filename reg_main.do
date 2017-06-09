@@ -151,6 +151,9 @@ prog def main_reg
         aermod_pre > 0 & ///                 Non-zero pollution exposure
         age_in_2000 >= 65 //                 At least 65 before treatment
 
+    tab sample
+    count if sample & bg_pct_9th_to_12th == .
+
 
     *** Regression ***
 
@@ -174,6 +177,9 @@ end
 
 }
 
+
+cap log close
+log using $OUT_PATH/reg_main_log.txt, text replace
 
 verify_out_path
 data_prep
@@ -214,3 +220,4 @@ foreach outcome in `outcomes' {
         local replace
     }
 }
+cap log close
