@@ -1,18 +1,57 @@
 from os import path
 
 import pandas as pd
-from shapely.geometry import Point
-from rtree import index
+import fiona
+from shapely.geometry import shape, Point
+try:
+    from rtree import index
+except ImportError:
+    pass
+
+counties = ('037', '059', '111')
+shp_path_model = path.join(r'd:\data', 'gis', 'census', '2000',
+                           'tl_2010_06{}_tabblock00.shp')
 
 
-def load_rtree():
+def load_rtree(_rebuild=False, _load=True):
     rtree_path = '../data/block2000_tree'
     exists = (path.isfile(rtree_path + '.dat') and
               path.isfile(rtree_path + '.idx'))
-    if exists:
+    if exists and _load and not _rebuild:
         return index.Rtree(rtree_path)
     else:
-        raise(IOError)
+        save_rtree(rtree_path)
+        return load_rtree()
+
+
+def save_rtree(rtree_path):
+    tree_idx = None
+    for county in counties:
+        tree_idx = county_rtree(county, tree_idx=tree_idx,
+                                rtree_path=rtree_path)
+    tree_idx.close()
+    del tree_idx
+
+
+def county_rtree(county, tree_idx=None, rtree_path=None):
+    # For using a pre-existing index
+    if tree_idx is None:
+        tree_idx = index.Rtree(rtree_path)
+
+    print "index {}".format(county)
+    filepath = shp_path_model.format(county)
+    with fiona.open(filepath) as shp:
+        # Put block shapes in Rtree:
+        dum_id = 0
+        for this_shape in shp:
+            tmp_dict = {'blockid': this_shape['properties']['BLKIDFP00'],
+                        'shp': shape(this_shape['geometry'])}
+            tree_idx.insert(dum_id, tmp_dict['shp'].bounds, obj=tmp_dict)
+            dum_id += 1
+            if dum_id % 1000 == 0:
+                print dum_id
+
+    return tree_idx
 
 
 if __name__ == '__main__':
