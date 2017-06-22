@@ -212,6 +212,7 @@ global W ///                           // Other controls
     bg_pct_renter_occ bg_pct_vacant bg_med_house_value ///
     bg_med_hh_inc
 
+local replace replace
 foreach outcome in `outcomes' {
     foreach timespan in `timespans' {
         di "Main: `outcome' `timespan'"
