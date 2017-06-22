@@ -177,11 +177,18 @@ prog def main_reg
     }
     local outcome_label = "`outcome_label' (`timespan'-yr)"
 
-    qui summ outcome_within_limit if in_reg
+    summ outcome_within_limit if in_reg
     local outcome_mean = `r(mean)'
+    summ aermod_pre if in_reg
+    local pre_mean = r(mean)
+    summ aermod_diff if in_reg
+    local diff_mean = r(mean)
 
     outreg2 using "${OUT_PATH}/${OUT_NAME}.xls", excel `replace' ///
-        ctitle("`outcome_label'") addstat("Outcome mean", `outcome_mean')
+        ctitle("`outcome_label'") ///
+        addstat("Outcome mean", `outcome_mean', ///
+                "Aermod_pre mean", `pre_mean', ///
+                "Aermod_diff mean", `diff_mean')
 end
 
 }
