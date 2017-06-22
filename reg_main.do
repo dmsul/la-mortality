@@ -149,6 +149,7 @@ prog def main_reg
     * Number of years lived after treatment
     cap drop outcome_years_after_treat
     gen outcome_years_after_treat = (`outcome' - date("1/1/2001", "MDY")) / 365
+    cap gen death_years_after_treat = (death_date- date("1/1/2001", "MDY")) / 365
 
     * Gen Y var
     cap drop outcome_within_limit
@@ -171,6 +172,10 @@ prog def main_reg
         enter_sample_year <= 2000 & ///      Observed in sample before treatment
         aermod_pre > 0 & aermod_pre < . & ///Non-zero pollution exposure
         age_in_2000 >= 65 //                 At least 65 before treatment
+
+    if "`outcome'" != "death_date" {
+        replace sample = sample * (death_years_after_treat > `timespan')
+    }
 
     *** Regression ***
 
