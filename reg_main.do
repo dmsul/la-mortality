@@ -21,10 +21,10 @@ if $FAKEDATA {
 else {
     global BENE_DATA Y:\Shares\CMS\Sullivan\Data\data_real                          // Core Medicare data
     global ZIPS_AERMOD Y:\Shares\CMS\Sullivan\Data\zips_aermod                      // Core AERMOD data
-    global ZIPS_AERMOD_SYMM Y:\Shares\CMS\Sullivan\Data\zips_aermod_symmetric.dta   						  // Derived from AERMOD
+    global ZIPS_AERMOD_SYMM Y:\Shares\CMS\Sullivan\Data\zips_aermod_symmetric.dta   // Derived from AERMOD
     global ZIPS_BLOCK2000 Y:\Shares\CMS\Sullivan\Data\zip4s_block2000.dta           // X-walk, zip4->block2000
     global BLOCKGROUP_INFO Y:\Shares\CMS\Sullivan\Data\blockgroup_2000              // Demographic info
-    global OUT_PATH Y:\Shares\CMS\Sullivan\Results                                      // Folder for output
+    global OUT_PATH Y:\Shares\CMS\Sullivan\Results                                  // Folder for output
 }
 
 global outopt bdec(5) sdec(5) bfmt(f) br asterisk(se) 
@@ -100,6 +100,7 @@ prog def data_prep
             `year' == death_year & zip4_`year' == enter_zip
     }
     gen tmp = stayer_thru_year < death_year | stayer_thru_year == 2013
+    tab death_year stayer_thru_year
     assert tmp
     drop death_year tmp
 
