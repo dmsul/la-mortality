@@ -1,3 +1,6 @@
+*capture log close
+*log using Y:\Shares\CMS\Sullivan\Logs\reg_main_log_6_25_17, text replace
+
 /*
 Regress "heath outcome realized w/in X years of pollution shock" on change in
 pollution exposure as measured by AERMOD.
@@ -5,14 +8,26 @@ pollution exposure as measured by AERMOD.
 clear all
 set more off
 
-global BENE_DATA ../data/data_fake                          // Core Medicare data
-global ZIPS_AERMOD ../data/zips_aermod                      // Core AERMOD data
-global ZIPS_AERMOD_SYMM ../data/zips_aermod_symmetric.dta   // Derived from AERMOD
-global ZIPS_BLOCK2000 ../data/zip4s_block2000.dta           // X-walk, zip4->block2000
-global BLOCKGROUP_INFO ../data/blockgroup_2000              // Demographic info
-global OUT_PATH ..\out                                      // Folder for output
+global FAKEDATA = 0
 
-global FAKEDATA = c(username) == "sullivan"   // Switch for using fake data (ZIP + "0000" fix)
+if $FAKEDATA {
+    global BENE_DATA ../data/data_fake                          // Core Medicare data
+    global ZIPS_AERMOD ../data/zips_aermod                      // Core AERMOD data
+    global ZIPS_AERMOD_SYMM ../data/zips_aermod_symmetric.dta   // Derived from AERMOD
+    global ZIPS_BLOCK2000 ../data/zip4s_block2000.dta           // X-walk, zip4->block2000
+    global BLOCKGROUP_INFO ../data/blockgroup_2000              // Demographic info
+    global OUT_PATH ..\out                                      // Folder for output
+}
+else {
+    global BENE_DATA Y:\Shares\CMS\Sullivan\Data\data_real                          // Core Medicare data
+    global ZIPS_AERMOD Y:\Shares\CMS\Sullivan\Data\zips_aermod                      // Core AERMOD data
+    global ZIPS_AERMOD_SYMM Y:\Shares\CMS\Sullivan\Data\zips_aermod_symmetric.dta   						  // Derived from AERMOD
+    global ZIPS_BLOCK2000 Y:\Shares\CMS\Sullivan\Data\zip4s_block2000.dta           // X-walk, zip4->block2000
+    global BLOCKGROUP_INFO Y:\Shares\CMS\Sullivan\Data\blockgroup_2000              // Demographic info
+    global OUT_PATH Y:\Shares\CMS\Sullivan\Results                                      // Folder for output
+}
+
+global outopt bdec(5) sdec(5) bfmt(f) br asterisk(se) 
 
 
 qui {
@@ -193,9 +208,6 @@ end
 
 }
 
-
-cap log close
-log using $OUT_PATH/reg_main_log.txt, text replace
 
 verify_out_path
 data_prep
