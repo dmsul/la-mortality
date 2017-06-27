@@ -1,3 +1,6 @@
+*capture log close
+*log using Y:\Shares\CMS\Sullivan\Logs\reg_main_log_6_25_17, text replace
+
 /*
 Regress "heath outcome realized w/in X years of pollution shock" on change in
 pollution exposure as measured by AERMOD.
@@ -5,14 +8,26 @@ pollution exposure as measured by AERMOD.
 clear all
 set more off
 
-global BENE_DATA ../data/data_fake                          // Core Medicare data
-global ZIPS_AERMOD ../data/zips_aermod                      // Core AERMOD data
-global ZIPS_AERMOD_SYMM ../data/zips_aermod_symmetric.dta   // Derived from AERMOD
-global ZIPS_BLOCK2000 ../data/zip4s_block2000.dta           // X-walk, zip4->block2000
-global BLOCKGROUP_INFO ../data/blockgroup_2000              // Demographic info
-global OUT_PATH ..\out                                      // Folder for output
+global FAKEDATA = 0
 
-global FAKEDATA = c(username) == "sullivan"   // Switch for using fake data (ZIP + "0000" fix)
+if $FAKEDATA {
+    global BENE_DATA ../data/data_fake                          // Core Medicare data
+    global ZIPS_AERMOD ../data/zips_aermod                      // Core AERMOD data
+    global ZIPS_AERMOD_SYMM ../data/zips_aermod_symmetric.dta   // Derived from AERMOD
+    global ZIPS_BLOCK2000 ../data/zip4s_block2000.dta           // X-walk, zip4->block2000
+    global BLOCKGROUP_INFO ../data/blockgroup_2000              // Demographic info
+    global OUT_PATH ..\out                                      // Folder for output
+}
+else {
+    global BENE_DATA Y:\Shares\CMS\Sullivan\Data\data_real                          // Core Medicare data
+    global ZIPS_AERMOD Y:\Shares\CMS\Sullivan\Data\zips_aermod                      // Core AERMOD data
+    global ZIPS_AERMOD_SYMM Y:\Shares\CMS\Sullivan\Data\zips_aermod_symmetric.dta   						  // Derived from AERMOD
+    global ZIPS_BLOCK2000 Y:\Shares\CMS\Sullivan\Data\zip4s_block2000.dta           // X-walk, zip4->block2000
+    global BLOCKGROUP_INFO Y:\Shares\CMS\Sullivan\Data\blockgroup_2000              // Demographic info
+    global OUT_PATH Y:\Shares\CMS\Sullivan\Results                                      // Folder for output
+}
+
+global outopt bdec(5) sdec(5) bfmt(f) br asterisk(se) 
 
 
 qui {
@@ -78,10 +93,15 @@ prog def data_prep
     gen death_year = year(death_date)
     gen stayer_thru_year = .
     forval year=1999/2013 {
-        replace stayer_thru_year = `year' if zip4_`year' == enter_zip | ///
-            (`year' > death_year & zip4_`year' == ".")  // Want to count people who died as "stayer"
+        replace stayer_thru_year = `year' if (zip4_`year' == enter_zip) & (`year' <= death_year)
     }
-    drop death_year
+    forval year=1999/2013 {  // Want to count people who died as "stayer"
+        replace stayer_thru_year = 2013 if ///
+            `year' == death_year & zip4_`year' == enter_zip
+    }
+    gen tmp = stayer_thru_year < death_year | stayer_thru_year == 2013
+    assert tmp
+    drop death_year tmp
 
     * For merging with other datafiles
     if $FAKEDATA {
@@ -193,9 +213,6 @@ end
 
 }
 
-
-cap log close
-log using $OUT_PATH/reg_main_log.txt, text replace
 
 verify_out_path
 data_prep
