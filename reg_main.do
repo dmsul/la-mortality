@@ -93,10 +93,15 @@ prog def data_prep
     gen death_year = year(death_date)
     gen stayer_thru_year = .
     forval year=1999/2013 {
-        replace stayer_thru_year = `year' if zip4_`year' == enter_zip | ///
-            (`year' > death_year & zip4_`year' == ".")  // Want to count people who died as "stayer"
+        replace stayer_thru_year = `year' if (zip4_`year' == enter_zip) & (`year' <= death_year)
     }
-    drop death_year
+    forval year=1999/2013 {  // Want to count people who died as "stayer"
+        replace stayer_thru_year = 2013 if ///
+            `year' == death_year & zip4_`year' == enter_zip
+    }
+    gen tmp = stayer_thru_year < death_year | stayer_thru_year == 2013
+    assert tmp
+    drop death_year tmp
 
     * For merging with other datafiles
     if $FAKEDATA {
