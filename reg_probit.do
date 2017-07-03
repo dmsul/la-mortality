@@ -100,7 +100,6 @@ prog def data_prep
             `year' == death_year & zip4_`year' == enter_zip
     }
     gen tmp = stayer_thru_year < death_year | stayer_thru_year == 2013
-    tab death_year stayer_thru_year
     assert tmp
     drop death_year tmp
 
@@ -180,7 +179,7 @@ prog def main_reg
 
     *** Regression ***
 
-    reg outcome_within_limit $X $W if sample, cluster(blkgrp) // a(tract)
+    probit outcome_within_limit $X $W if sample, cluster(blkgrp) // a(tract)
 
     * Diagnostics
     cap drop in_reg
@@ -233,7 +232,7 @@ local outcomes /// Health outcomes to examine
 local timespans 1 3 5 10  // Time horizon for outcomes (e.g., 3-year mortality)
 
 * Basic Specification
-global OUT_NAME "regs_main"
+global OUT_NAME "regs_probit"
 global X aermod_diff aermod_pre        // X's of interest
 global W ///                           // Other controls
     agebin_67-agebin_90 male ///
@@ -253,7 +252,7 @@ foreach outcome in `outcomes' {
 }
 
 * Interact aermod_diff with age bins
-global OUT_NAME "regs_interact_age"
+global OUT_NAME "regs_interact_age_probit"
 global X c.aermod_diff#i.agebins aermod_pre
 local replace replace
 foreach outcome in `outcomes' {
