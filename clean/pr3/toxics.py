@@ -8,7 +8,7 @@ from clean.pr2 import elec_facids
 from clean.pr2.firmgroups import group_lists_full, get_grouprep
 
 
-@load_or_build(data_path('pr3_toxics.p'))
+@load_or_build(data_path('pr3_toxics.pkl'))
 def emit_toxics(_rebuild_down=False):
 
     df = raw_toxics(_rebuild=_rebuild_down)
@@ -17,11 +17,12 @@ def emit_toxics(_rebuild_down=False):
     df['gfacid'] = df['facid'].apply(_get_groupid, args=(groups,))
     df = df[df['gfacid'] != -1]
     df['facid'] = df['gfacid']
+    df = df.drop('gfacid', axis=1)
     df = df.groupby(['facid', 'year']).sum()
 
     return df
 
-def _get_groupid(x, groups):    #noqa
+def _get_groupid(x, groups):
     if x in groups:
         return get_grouprep(groups.loc[x])
     else:
