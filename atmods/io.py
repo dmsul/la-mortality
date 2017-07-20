@@ -446,6 +446,7 @@ def load_firm_exposure(geounit, model, facid, allfirms_noxgs=None,
         return zip_level_scaled
 
     # Load this firm's nox in g/s
+    # TODO: This has to adapt to `model`
     if allfirms_noxgs is None:
         firms_noxgs = formatted_firms_noxgs(facid)
     else:
@@ -465,6 +466,7 @@ def load_firm_exposure(geounit, model, facid, allfirms_noxgs=None,
 
     return actual_exp
 
+
 def _firms_aermod_exp(normed_exp, firms_noxgs, model):
     """ Outer product of normed exp and actual emissions for each quarter. """
     columns = exposure_df_column_idx(firms_noxgs.index, model)
@@ -482,6 +484,7 @@ def _firms_aermod_exp(normed_exp, firms_noxgs, model):
     actual_exp = np.around(actual_exp * 1e5) / 1e5
 
     return actual_exp
+
 
 def _firms_kernel_exp(normed_exp, firms_noxgs, model):
     """ Outer product of normed exp and actual emissions for each quarter.  """
