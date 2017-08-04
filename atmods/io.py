@@ -401,7 +401,7 @@ def sum_allfirms_exposure(geounit, model, firm_list=None):
     for fid in firm_list:
         print str(fid)
         firms_scaled = load_firm_exposure(geounit, model, fid,
-                                          allfirms_noxgs=allfirms_noxgs,
+                                          allfirms_emit_gs=allfirms_emit_gs,
                                           )
         temp_df = firms_scaled.reindex(index=running_tot.index).fillna(0)
         running_tot += temp_df
@@ -428,7 +428,7 @@ def _prep_allfirms_exp_df(geounit, model):
     return df
 
 
-def load_firm_exposure(geounit, model, facid, allfirms_noxgs=None,
+def load_firm_exposure(geounit, model, facid, allfirms_emit_gs=None,
                        altmaxdist=None):
     """
     Scale up raw exposure by actual emissions.
@@ -440,22 +440,24 @@ def load_firm_exposure(geounit, model, facid, allfirms_noxgs=None,
     """
 
     # Load this firm's nox in g/s
-    # TODO: This has to adapt to `model`
-    if allfirms_noxgs is None:
-        firms_noxgs = formatted_firms_noxgs(facid)
+    if allfirms_emit_gs is None:
+        firms_emit_gs = formatted_firms_emission_grams_sec(facid=facid,
+                                                           model=model)
     else:
-        firms_noxgs = allfirms_noxgs.loc[facid]
+        firms_emit_gs = allfirms_emit_gs.loc[facid]
 
     # Load raw air quality exposure data
-    normed_exp = load_firm_normed_exp(geounit, model, facid,
+    normed_model = 'aermod' if 'aermod' in model else model
+    normed_exp = load_firm_normed_exp(geounit, normed_model, facid,
                                       altmaxdist=altmaxdist).sort_index()
 
     if model == 'aermod_nox':
-        actual_exp = _firms_aermod_exp(normed_exp, firms_noxgs, model)
+        actual_exp = _firms_aermod_exp(normed_exp, firms_emit_gs, model)
     elif 'aermod' in model:
-        pass
+        actual_exp = _firms_aermod_not_nox_exp(normed_exp, firms_emit_gs,
+                                               model)
     else:
-        actual_exp = _firms_kernel_exp(normed_exp, firms_noxgs, model)
+        actual_exp = _firms_kernel_exp(normed_exp, firms_emit_gs, model)
 
     # If a firm has missing emissions in a year, assume 0
     actual_exp = actual_exp.fillna(0)
@@ -475,6 +477,19 @@ def _firms_aermod_exp(normed_exp, firms_noxgs, model):
         pn[q].update(_cross_df(normed_exp[q], firms_noxgs[q], columns))
 
     actual_exp = pn.transpose(2, 1, 0).to_frame()
+
+    # Round to 5 decimals (AERMOD's actual limit)
+    actual_exp = np.around(actual_exp * 1e5) / 1e5
+
+    return actual_exp
+
+
+def _firms_aermod_not_nox_exp(normed_exp, firms_noxgs, model):
+    """ Outer product of normed exp and actual emissions for each quarter. """
+    columns = exposure_df_column_idx(firms_noxgs.index, model)
+    # Non-NOx AERMOD is annual emissions
+    annual_normed_exp = normed_exp.mean(axis=1)
+    actual_exp = _cross_df(annual_normed_exp, firms_noxgs, columns)
 
     # Round to 5 decimals (AERMOD's actual limit)
     actual_exp = np.around(actual_exp * 1e5) / 1e5
@@ -514,9 +529,9 @@ def _cross_df(raw, emit, columns):
     return scaled
 
 
-def formatted_firms_emission_grams_sec(facid=None, model='aermod-nox'):
+def formatted_firms_emission_grams_sec(facid=None, model='aermod_nox'):
     # Get correct emissions data
-    aermod_not_nox = 'aermod' in model and model != 'aermod-nox'
+    aermod_not_nox = 'aermod' in model and model != 'aermod_nox'
     if aermod_not_nox:
         emit = load_named_toxic_emissions(name=model.replace('aermod-', ''))
     else:
