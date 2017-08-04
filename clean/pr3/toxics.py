@@ -8,6 +8,32 @@ from clean.pr2 import elec_facids
 from clean.pr2.firmgroups import group_lists_full, get_grouprep
 
 
+def load_named_toxic_emissions(name='', _rebuild=False):
+    df = emit_toxics(_rebuild=_rebuild)
+
+    rename = {
+        91203: 'napthalene',
+        7664417: 'ammonia',
+        71432: 'benzene',
+        7439921: 'lead',
+        7440020: 'nickel',
+        7440382: 'arsenic',
+        7440439: 'cadmium',
+        50000: 'formaldehyde',
+        18540299: 'chromium',
+        1332214: 'asbestos',
+    }
+    df = df.rename(columns=rename)
+    df = df[list(rename.values())]
+
+    if name:
+        try:
+            df = df[name].copy()
+        except KeyError:
+            raise KeyError("Invalid toxic name passed")
+
+    return df
+
 @load_or_build(data_path('pr3_toxics.pkl'))
 def emit_toxics(_rebuild_down=False):
 
@@ -20,6 +46,9 @@ def emit_toxics(_rebuild_down=False):
     df = df.drop('gfacid', axis=1)
     df = df.groupby(['facid', 'year']).sum()
 
+    # Reformat columns so CAS numbers are not stored as str
+    df = df.rename(columns=_destring_cas)
+
     return df
 
 def _get_groupid(x, groups):
@@ -27,6 +56,12 @@ def _get_groupid(x, groups):
         return get_grouprep(groups.loc[x])
     else:
         return -1
+
+def _destring_cas(x):
+    if x.isdigit():
+        return int(x)
+    else:
+        return x
 
 
 @load_or_build(data_path('pr3_toxics_raw.p'))
