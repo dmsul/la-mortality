@@ -16,6 +16,7 @@ from clean import (load_geounit, load_blocks_wzip, load_monitors,
                    load_houses_utm)
 from clean.fake_grid import round_nearest, GRID_SIZE
 from clean.pr2 import load_stacks, emissions, elec_facids
+from clean.pr3.toxics import load_named_toxic_emissions
 from atmods.env import FIRMS_FOR_ALTMAXDIST
 from atmods.kernels import KERNELS
 from atmods.chunktools import calc_aermod_units
@@ -394,7 +395,7 @@ def sum_allfirms_exposure(geounit, model, firm_list=None):
     else:
         firm_list = force_iterable(firm_list)
 
-    allfirms_noxgs = formatted_firms_noxgs()
+    allfirms_emit_gs = formatted_firms_emission_grams_sec()
 
     running_tot = _prep_allfirms_exp_df(geounit, model)
     for fid in firm_list:
@@ -438,13 +439,6 @@ def load_firm_exposure(geounit, model, facid, allfirms_noxgs=None,
       is default and defers to list in `atmods.env`.
     """
 
-    if geounit == 'patzip':
-        block_level_scaled = load_firm_exposure('block', model, facid,
-                                                allfirms_noxgs=allfirms_noxgs)
-        zip_level_scaled = build_zip_from_block(model,
-                                                block_airq=block_level_scaled)
-        return zip_level_scaled
-
     # Load this firm's nox in g/s
     # TODO: This has to adapt to `model`
     if allfirms_noxgs is None:
@@ -456,8 +450,10 @@ def load_firm_exposure(geounit, model, facid, allfirms_noxgs=None,
     normed_exp = load_firm_normed_exp(geounit, model, facid,
                                       altmaxdist=altmaxdist).sort_index()
 
-    if model == 'aermod':
+    if model == 'aermod_nox':
         actual_exp = _firms_aermod_exp(normed_exp, firms_noxgs, model)
+    elif 'aermod' in model:
+        pass
     else:
         actual_exp = _firms_kernel_exp(normed_exp, firms_noxgs, model)
 
@@ -518,21 +514,42 @@ def _cross_df(raw, emit, columns):
     return scaled
 
 
-def formatted_firms_noxgs(facid=None):
-    firms_nox = emissions()
+def formatted_firms_emission_grams_sec(facid=None, model='aermod-nox'):
+    # Get correct emissions data
+    aermod_not_nox = 'aermod' in model and model != 'aermod-nox'
+    if aermod_not_nox:
+        emit = load_named_toxic_emissions(name=model.replace('aermod-', ''))
+    else:
+        emit = emissions()
+
     if facid:
-        firms_nox = firms_nox.loc[facid]
-    firms_nox = firms_nox.unstack('quarter')
+        emit = emit.loc[facid]
+
+    # NOx data are quarterly, toxics are annual
+    if aermod_not_nox:
+        pass
+    else:
+        emit = emit.unstack('quarter')
+
     # Some firms don't have all years (or quarters). Fill with nan
     if facid:
-        firms_nox = firms_nox.reindex(PR2_YEARS)
-        firms_nox = firms_nox.reindex(columns=range(1, 4 + 1))
+        emit = emit.reindex(PR2_YEARS)
+        if not aermod_not_nox:
+            emit = emit.reindex(columns=range(1, 4 + 1))
+    elif aermod_not_nox:
+        emit = (emit
+                .unstack('year')
+                .reindex(columns=PR2_YEARS)
+                .stack('year', dropna=False))
     else:
-        firms_nox = firms_nox.to_panel().to_frame(filter_observations=False)
+        emit = emit.to_panel().to_frame(filter_observations=False)
 
-    firms_noxgs = _tonsperyq_to_gramspersec(firms_nox)
+    if aermod_not_nox:
+        firms_emit_gs = _lbs_per_yr_to_grams_per_sec(emit)
+    else:
+        firms_emit_gs = _tonsperyq_to_gramspersec(emit)
 
-    return firms_noxgs
+    return firms_emit_gs
 
 def _tonsperyq_to_gramspersec(tons_nox, quarterly=True):
     """Convert tons per year (or quarter) to grams per second."""
@@ -542,6 +559,13 @@ def _tonsperyq_to_gramspersec(tons_nox, quarterly=True):
     nox_gs = tons_nox * tpy_to_gps * year_units
 
     return nox_gs
+
+def _lbs_per_yr_to_grams_per_sec(lbs_emit):
+    ppy_to_gps = (453.59237 /               # grams/lbs
+                  (365.25 * 24 * 60 * 60))  # seconds/year
+    emit_gs = lbs_emit * ppy_to_gps
+    return emit_gs
+
 
 
 def load_firm_normed_exp(geounit, model, facid, altmaxdist=None, **lobkwargs):
