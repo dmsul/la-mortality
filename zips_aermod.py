@@ -21,9 +21,9 @@ def load_zips_aermod_pre():
     return aermod_pre
 
 
-@load_or_build('../data/zips_aermod.dta')
-def load_zips_aermod():
-    df = grids_wide()
+@load_or_build('../data/zips_aermod_{}.dta', path_args=['chem'])
+def load_zips_aermod(chem='nox'):
+    df = grids_wide(chem=chem)
     utm = zip4_utms()
 
     utm = utm.set_index(['utm_east', 'utm_north'])
@@ -38,11 +38,15 @@ def load_zips_aermod():
     return zips_aermod
 
 
-def grids_wide():
-    grids = pd.read_pickle('../data/grids_aermod.pkl')
-    df = grids.unstack('quarter')
+def grids_wide(chem='nox'):
+    if chem == 'nox':
+        df = pd.read_pickle('../data/grids_aermod.pkl')
+        df = df.unstack('quarter')
+        new_cols = ['{}_{}q{}'.format(x[1], x[0], x[2]) for x in df.columns]
+    else:
+        df = pd.read_pickle('../data/grids_aermod_{}.pkl'.format(chem))
+        new_cols = ['{}_{}'.format(x[1], x[0]) for x in df.columns]
 
-    new_cols = ['{}_{}q{}'.format(x[1], x[0], x[2]) for x in df.columns]
     df.columns = new_cols
 
     return df
