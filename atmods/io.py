@@ -136,7 +136,7 @@ def filepath_airqdata(geounit, model, elec=None):
         except AssertionError:
             raise ValueError("`elec` must be 0 or 1.")
         filename += '_el{}'.format(elec)
-    filename += '.p'
+    filename += '.pkl'
     full_path = data_path(filename)
     return full_path
 
@@ -395,7 +395,7 @@ def sum_allfirms_exposure(geounit, model, firm_list=None):
     else:
         firm_list = force_iterable(firm_list)
 
-    allfirms_emit_gs = formatted_firms_emission_grams_sec()
+    allfirms_emit_gs = formatted_firms_emission_grams_sec(model=model)
 
     running_tot = _prep_allfirms_exp_df(geounit, model)
     for fid in firm_list:
@@ -403,6 +403,8 @@ def sum_allfirms_exposure(geounit, model, firm_list=None):
         firms_scaled = load_firm_exposure(geounit, model, fid,
                                           allfirms_emit_gs=allfirms_emit_gs,
                                           )
+        if firms_scaled is None:
+            continue
         temp_df = firms_scaled.reindex(index=running_tot.index).fillna(0)
         running_tot += temp_df
         del firms_scaled, temp_df
@@ -415,10 +417,13 @@ def _prep_allfirms_exp_df(geounit, model):
     utm_idx = utm.astype(np.int32).set_index(UTM).index
 
     idx_df = pd.DataFrame(index=utm_idx)
-    for q in range(1, 4 + 1):
-        idx_df[q] = 0
-    idx_df.columns.name = 'quarter'
-    idx = idx_df.stack('quarter').index
+    if 'aermod' in model and model != 'aermod_nox':
+        idx = idx_df.index
+    else:
+        for q in range(1, 4 + 1):
+            idx_df[q] = 0
+        idx_df.columns.name = 'quarter'
+        idx = idx_df.stack('quarter').index
 
     # Add years wide
     col_idx = exposure_df_column_idx(PR2_YEARS, model)
@@ -444,7 +449,13 @@ def load_firm_exposure(geounit, model, facid, allfirms_emit_gs=None,
         firms_emit_gs = formatted_firms_emission_grams_sec(facid=facid,
                                                            model=model)
     else:
-        firms_emit_gs = allfirms_emit_gs.loc[facid]
+        if model == 'aermod':
+            firms_emit_gs = allfirms_emit_gs.loc[facid]
+        elif 'aermod' in model:
+            try:
+                firms_emit_gs = allfirms_emit_gs.loc[facid]
+            except:
+                return None
 
     # Load raw air quality exposure data
     normed_model = 'aermod' if 'aermod' in model else model
@@ -531,10 +542,13 @@ def _cross_df(raw, emit, columns):
 
 def formatted_firms_emission_grams_sec(facid=None, model='aermod_nox'):
     # Get correct emissions data
+    print(model)
     aermod_not_nox = 'aermod' in model and model != 'aermod_nox'
     if aermod_not_nox:
-        emit = load_named_toxic_emissions(name=model.replace('aermod-', ''))
+        print("aermod not nox")
+        emit = load_named_toxic_emissions(name=model.replace('aermod_', ''))
     else:
+        print("std aermod")
         emit = emissions()
 
     if facid:
