@@ -27,7 +27,7 @@ else {
     global OUT_PATH Y:\Shares\CMS\Sullivan\Results                                  // Folder for output
 }
 
-global outopt bdec(5) sdec(5) bfmt(f) br asterisk(se) 
+global outopt bdec(5) sdec(5) bfmt(f) br asterisk(se)
 
 global CHEMS nox napthalene ammonia benzene lead nickel arsenic cadmium formaldehyde chromium asbestos
 
@@ -164,10 +164,6 @@ prog def data_prep
     egen cancer_any_ever = rowmin(cancer*ever)
 end
 
-/* TODO
-   mortality regs with all pollutants
-   mortality regs with one each
-*/
 
 prog def main_reg
     args outcome timespan replace
@@ -191,7 +187,7 @@ prog def main_reg
     }
 
     cap drop aer_pre_max
-    egen aer_pre_max = rowmin(aer_*_pre)    // for check in `samplax
+    egen aer_pre_max = rowmin($pre_var)    // for check in `sample'
 
     * Sample restriction
     local max_move_year = 2000 + `timespan'
@@ -261,16 +257,15 @@ data_prep
 
 local outcomes /// Health outcomes to examine
     death_date //
-    /*
     ami_ever alzh_ever copd_ever diabetes_ever hip_fracture_ever ///
     stroke_tia_ever cancer_lung_ever cancer_any_ever asthma_ever ///
     majordepression_ever migraine_ever hypert anxiety
-    */
 local timespans 1 3 5 10  // Time horizon for outcomes (e.g., 3-year mortality)
 
-* Basic Specification
+* All pollutants at once
 global OUT_NAME "regs_toxic"
 global X aer_*_diff aer_*_pre        // X's of interest
+global pre_var aer_*_pre             // variable(s) to condition sample on
 global W ///                           // Other controls
     agebin_67-agebin_90 male ///
     bg_pct_8th_or_less bg_pct_9th_to_12th bg_pct_some_coll bg_pct_assoc_degree ///
@@ -287,5 +282,22 @@ foreach outcome in `outcomes' {
         local replace
     }
 }
+
+* One pollutant at a time
+global OUT_NAME "regs_toxic_single_chem"
+
+local replace replace
+foreach outcome in death_date {
+    foreach chem in $CHEMS {
+        global X aer_`chem'_diff aer_`chem'_pre
+        global pre_var aer_`chem'_pre             // variable(s) to condition sample on
+        foreach timespan in `timespans' {
+            di "Main: `outcome' `timespan'"
+            main_reg `outcome' `timespan' `replace'
+            local replace
+        }
+    }
+}
+
 
 cap log close
