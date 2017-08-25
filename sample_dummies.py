@@ -13,26 +13,31 @@ from get_zip_utm import zip4_utms
 UTM = ['utm_east', 'utm_north']
 
 
-@load_or_build('../data/zips_coast_flag.dta')
+@load_or_build('../data/zips_coast_hotzone_flag.dta')
 def get_zip4_coast_flag():
     zip_utm = zip4_utms()
 
     samp = center_sw(zip_utm, maxdist=10)
     samp = samp.set_index('zip4')
-    samp['samp_std'] = 1
+    samp['hotzone'] = 1
 
-    zip_utm = zip_utm.join(samp[['samp_std']], on='zip4', how='left')
-    zip_utm['samp_std'] = zip_utm['samp_std'].fillna(0).astype(int)
+    zip_utm = zip_utm.join(samp[['hotzone']], on='zip4', how='left')
+    zip_utm['hotzone'] = zip_utm['hotzone'].fillna(0).astype(int)
 
     # Do it again for convex coastal samp
-    samp = center_sw(zip_utm, maxdist=10, convex=True)
-    samp = samp.set_index('zip4')
-    samp['samp_convex'] = 1
+    if False:       # 8/11: convex isn't working
+        samp = center_sw(zip_utm, maxdist=10, convex=True)
+        samp = samp.set_index('zip4')
+        samp['hotzone_convex'] = 1
 
-    zip_utm = zip_utm.join(samp[['samp_convex']], on='zip4', how='left')
-    zip_utm['samp_convex'] = zip_utm['samp_convex'].fillna(0).astype(int)
+        zip_utm = zip_utm.join(samp[['hotzone_convex']], on='zip4', how='left')
+        zip_utm['hotzone_convex'] = zip_utm['hotzone_convex'].fillna(0).astype(int)
 
-    zip_samp = zip_utm.set_index('zip4')[['samp_std', 'samp_convex']].copy()
+    # For easier merging in Stata
+    zip_utm['zip4'] = zip_utm['zip4'].astype(str)
+
+    # zip_samp = zip_utm.set_index('zip4')[['hotzone', 'hotzone_convex']].copy()
+    zip_samp = zip_utm.set_index('zip4')[['hotzone']].copy()
 
     return zip_samp
 
@@ -129,4 +134,4 @@ def getdist(base, target, within=0):
 
 
 if __name__ == '__main__':
-    df = get_zip4_coast_flag()
+    df = get_zip4_coast_flag(_rebuild=True)

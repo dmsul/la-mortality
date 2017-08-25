@@ -1,5 +1,5 @@
-*capture log close
-*log using Y:\Shares\CMS\Sullivan\Logs\reg_main_log_6_25_17, text replace
+capture log close
+*log using Y:\Shares\CMS\Sullivan\Logs\reg_toxics_log, text replace
 
 /*
 Regress "heath outcome realized w/in X years of pollution shock" on change in
@@ -9,12 +9,14 @@ clear all
 set more off
 
 global FAKEDATA = 1
+global HOTZONE_ONLY = 1
 
 if $FAKEDATA {
     global BENE_DATA ../data/data_fake                          // Core Medicare data
     global ZIPS_AERMOD ../data/zips_aermod                      // Core AERMOD data
     global ZIPS_AERMOD_SYMM_ROOT ../data/zips_aermod_symmetric   // Derived from AERMOD
     global ZIPS_BLOCK2000 ../data/zip4s_block2000.dta           // X-walk, zip4->block2000
+    global ZIPS_HOTZONE_FLAG ../data/zips_coast_hotzone_flag.dta
     global BLOCKGROUP_INFO ../data/blockgroup_2000              // Demographic info
     global OUT_PATH ..\out                                      // Folder for output
 }
@@ -23,13 +25,15 @@ else {
     global ZIPS_AERMOD Y:\Shares\CMS\Sullivan\Data\zips_aermod                      // Core AERMOD data
     global ZIPS_AERMOD_SYMM_ROOT Y:\Shares\CMS\Sullivan\Data\zips_aermod_symmetric   // Derived from AERMOD
     global ZIPS_BLOCK2000 Y:\Shares\CMS\Sullivan\Data\zip4s_block2000.dta           // X-walk, zip4->block2000
+    global ZIPS_HOTZONE_FLAG Y:\Shares\CMS\zips_coast_hotzone_flag.dta
     global BLOCKGROUP_INFO Y:\Shares\CMS\Sullivan\Data\blockgroup_2000              // Demographic info
     global OUT_PATH Y:\Shares\CMS\Sullivan\Results                                  // Folder for output
 }
 
 global outopt bdec(5) sdec(5) bfmt(f) br asterisk(se)
 
-global CHEMS nox napthalene ammonia benzene lead nickel arsenic cadmium formaldehyde chromium asbestos
+* global CHEMS nox napthalene ammonia benzene lead nickel arsenic cadmium formaldehyde chromium asbestos co rog sox tsp
+global CHEMS nox co rog sox tsp
 
 
 qui {
@@ -140,11 +144,13 @@ prog def data_prep
     }
 
     * Merge in Block Group/Tract
+    di "Merging Block ID"
     merge m:1 zip4 using $ZIPS_BLOCK2000, keep(1 3) nogen
     gen blkgrp = substr(block2000, 1, 12)
     gen tract = substr(blkgrp, 1, 11)
     drop block2000
     gen bg = blkgrp
+    di "Merging Block Group info"
     merge m:1 bg using $BLOCKGROUP_INFO, keep(1 3) nogen
     drop bg
 
@@ -159,6 +165,11 @@ prog def data_prep
         local i = `i' + 1
     }
     drop agebin_0
+
+    * Merge in "Hotzone" flag
+    di "Merging 'Hotzone' flag"
+    merge m:1 zip4 using $ZIPS_HOTZONE_FLAG, keep(1 3) nogen
+
 
     * New cancer variable
     egen cancer_any_ever = rowmin(cancer*ever)
@@ -199,6 +210,9 @@ prog def main_reg
         enter_sample_year <= 2000 & ///      Observed in sample before treatment
         aer_pre_max > 0 & aer_pre_max < . & ///Non-zero pollution exposure
         age_in_2000 >= 65 //                 At least 65 before treatment
+    if $HOTZONE_ONLY {
+        replace sample = sample * hotzone
+    }
 
     if "`outcome'" != "death_date" {
         replace sample = sample * (death_years_after_treat > `timespan')
@@ -219,6 +233,7 @@ prog def main_reg
     count if enter_sample_year <= 2000
     count if aer_pre_max > 0
     count if age_in_2000 >= 65
+    count if hotzone == 1
 
 
     * Format text for `outreg2`
@@ -256,14 +271,14 @@ data_prep
 ** Regressions
 
 local outcomes /// Health outcomes to examine
-    death_date //
+    death_date ///
     ami_ever alzh_ever copd_ever diabetes_ever hip_fracture_ever ///
     stroke_tia_ever cancer_lung_ever cancer_any_ever asthma_ever ///
     majordepression_ever migraine_ever hypert anxiety
 local timespans 1 3 5 10  // Time horizon for outcomes (e.g., 3-year mortality)
 
 * All pollutants at once
-global OUT_NAME "regs_toxic"
+global OUT_NAME "regs_toxic_hotzone$HOTZONE_ONLY"
 global X aer_*_diff aer_*_pre        // X's of interest
 global pre_var aer_*_pre             // variable(s) to condition sample on
 global W ///                           // Other controls
@@ -284,7 +299,7 @@ foreach outcome in `outcomes' {
 }
 
 * One pollutant at a time
-global OUT_NAME "regs_toxic_single_chem"
+global OUT_NAME "regs_toxic_single_chem_hotzone$HOTZONE_ONLY"
 
 local replace replace
 foreach outcome in death_date {

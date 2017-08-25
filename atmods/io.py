@@ -573,10 +573,14 @@ def formatted_firms_emission_grams_sec(facid=None, model='aermod_nox'):
     else:
         emit = emit.to_panel().to_frame(filter_observations=False)
 
-    if aermod_not_nox:
-        firms_emit_gs = _lbs_per_yr_to_grams_per_sec(emit)
-    else:
+    # Criteria pollutants measured tons/year, toxics lbs/year
+    criteria_pollutant = (
+        'aermod' in model and
+        model.split('_')[1] in ('nox', 'co', 'rog', 'sox', 'tsp'))
+    if criteria_pollutant:
         firms_emit_gs = _tonsperyq_to_gramspersec(emit)
+    else:
+        firms_emit_gs = _lbs_per_yr_to_grams_per_sec(emit)
 
     return firms_emit_gs
 

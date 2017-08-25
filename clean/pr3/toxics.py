@@ -24,7 +24,8 @@ def load_named_toxic_emissions(name='', _rebuild=False):
         1332214: 'asbestos',
     }
     df = df.rename(columns=rename)
-    df = df[list(rename.values())]
+    criteria_pols = ['co', 'rog', 'sox', 'tsp']
+    df = df[list(rename.values()) + criteria_pols]
 
     if name:
         try:

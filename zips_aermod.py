@@ -6,6 +6,7 @@ import numpy as np
 from econtools import load_or_build
 
 from get_zip_utm import zip4_utms
+from atmods.io import load_full_exposure
 
 
 @load_or_build('../data/zips_aermod_pre.dta')
@@ -44,7 +45,7 @@ def grids_wide(chem='nox'):
         df = df.unstack('quarter')
         new_cols = ['{}_{}q{}'.format(x[1], x[0], x[2]) for x in df.columns]
     else:
-        df = pd.read_pickle('../data/grids_aermod_{}.pkl'.format(chem))
+        df = load_full_exposure('grid', 'aermod_{}'.format(chem), _rebuild=True)
         new_cols = ['{}_{}'.format(x[1], x[0]) for x in df.columns]
 
     df.columns = new_cols
