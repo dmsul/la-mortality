@@ -240,8 +240,8 @@ data_prep
 
 global outcomes /// Health outcomes to examine
     ami_ever alzh_ever copd_ever diabetes_ever hip_fracture_ever ///
-    stroke_tia_ever cancer_any_ever asthma_ever
-    // majordepression_ever migraine_ever hypert anxiety cancer_lung_ever  
+    stroke_tia_ever cancer_any_ever asthma_ever hypert 
+    // majordepression_ever migraine_ever anxiety cancer_lung_ever  
 local timespans 1 3 5 10  // Time horizon for outcomes (e.g., 3-year mortality)
 
 * Basic Specification
