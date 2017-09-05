@@ -2,21 +2,23 @@ global FAKEDATA = 1
 
 *** File Paths
 if $FAKEDATA {
-    global BENE_DATA ../data/data_fake                          // Core Medicare data
-    global ZIPS_AERMOD ../data/zips_aermod                      // Core AERMOD data
-    global ZIPS_AERMOD_SYMM_ROOT ../data/zips_aermod_symmetric   // Derived from AERMOD
-    global ZIPS_BLOCK2000 ../data/zip4s_block2000.dta           // X-walk, zip4->block2000
-    global ZIPS_HOTZONE_FLAG ../data/zips_coast_hotzone_flag.dta
-    global BLOCKGROUP_INFO ../data/blockgroup_2000              // Demographic info
+    global root_path ../data
+    global BENE_DATA $root_path/data_fake1                         // Core Medicare data
+    global ZIPS_AERMOD $root_path/zips_aermod                      // Core AERMOD data
+    global ZIPS_AERMOD_SYMM_ROOT $root_path/zips_aermod_symmetric   // Derived from AERMOD
+    global ZIPS_BLOCK2000 $root_path/zip4s_block2000.dta           // X-walk, zip4->block2000
+    global ZIPS_HOTZONE_FLAG $root_path/zips_coast_hotzone_flag.dta
+    global BLOCKGROUP_INFO $root_path/blockgroup_2000              // Demographic info
     global OUT_PATH ..\out                                      // Folder for output
 }
 else {
-    global BENE_DATA Y:\Shares\CMS\Sullivan\Data\data_real                          // Core Medicare data
-    global ZIPS_AERMOD Y:\Shares\CMS\Sullivan\Data\zips_aermod                      // Core AERMOD data
-    global ZIPS_AERMOD_SYMM_ROOT Y:\Shares\CMS\Sullivan\Data\zips_aermod_symmetric   // Derived from AERMOD
-    global ZIPS_BLOCK2000 Y:\Shares\CMS\Sullivan\Data\zip4s_block2000.dta           // X-walk, zip4->block2000
-    global ZIPS_HOTZONE_FLAG Y:\Shares\CMS\zips_coast_hotzone_flag.dta
-    global BLOCKGROUP_INFO Y:\Shares\CMS\Sullivan\Data\blockgroup_2000              // Demographic info
+    global root_path Y:\Shares\CMS\Sullivan\Data
+    global BENE_DATA $root_path\data_real                          // Core Medicare data
+    global ZIPS_AERMOD $root_path\zips_aermod                      // Core AERMOD data
+    global ZIPS_AERMOD_SYMM_ROOT $root_path\zips_aermod_symmetric   // Derived from AERMOD
+    global ZIPS_BLOCK2000 $root_path\zip4s_block2000.dta           // X-walk, zip4->block2000
+    global ZIPS_HOTZONE_FLAG $root_path\zips_coast_hotzone_flag.dta
+    global BLOCKGROUP_INFO $root_path\blockgroup_2000              // Demographic info
     global OUT_PATH Y:\Shares\CMS\Sullivan\Results                                  // Folder for output
 }
 
@@ -44,6 +46,9 @@ global W ///                           // Other controls
     agebin_67-agebin_90 ///
     agebin_67_male-agebin_90_male ///
     male ///
+    black asian hispanic other ///
+    spendnonrx_pre_mean ///
+    ADRD_2000 chf_2000 ischemicheart_2000 diabetes_2000 stroke_2000 hypert_2000 ///
     bg_pct_8th_or_less bg_pct_9th_to_12th bg_pct_some_coll bg_pct_assoc_degree ///
     bg_pct_bach_degree bg_pct_grad_degree ///
     bg_pct_black bg_pct_hispanic ///
@@ -52,7 +57,7 @@ global W ///                           // Other controls
 
 global pre_var aer_nox_pre
 
-global outopt bdec(5) sdec(5) bfmt(f) br asterisk(se) 
+global outopt bdec(5) sdec(5) bfmt(f) br asterisk(se)
 
 
 prog def verify_out_path
@@ -164,6 +169,11 @@ prog def data_prep
     else {
         gen zip4 = enter_zip
     }
+
+
+    * Pre-period spending
+    egen spendnonrx_pre_mean = rowmean(spendnonrx_total_1999 spendnonrx_total_2000)
+
 
     * Merge in Aermod pre/post averages
     _gen_aermod_pre_post    // Gen file of pre/post aermod averages
