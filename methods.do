@@ -27,6 +27,8 @@ else {
 * global CHEMS nox co rog sox tsp
 global CHEMS nox
 
+global interact_diagnoses
+
 global HOTZONE_ONLY = 0
 
 global reg_command reg
@@ -45,6 +47,8 @@ global W ///                           // Other controls
     bg_pct_black bg_pct_hispanic ///
     bg_pct_renter_occ bg_pct_vacant bg_med_house_value ///
     bg_med_hh_inc
+
+global pre_var aer_nox_pre
 
 global outopt bdec(5) sdec(5) bfmt(f) br asterisk(se) 
 
@@ -220,6 +224,20 @@ prog def main_reg
         gen aer_`chem'_pre = aermod_`chem'_pre_`aermod_diff_band'
         gen aer_`chem'_diff = aermod_`chem'_post_`aermod_diff_band' - aer_`chem'_pre
     }
+
+    cap drop aer_nox_*_d_*
+    foreach diag in $interact_diagnoses {
+        gen tmp_years_after_treat = (`diag' - date("1/1/2001", "MDY")) / 365
+        gen tmp_diag_within_limit = tmp_years_after_treat <= `timespan'
+
+        cap drop aermod_pre_d_`diag'
+        cap drop aermod_diff_d_`diag'
+        gen aer_nox_pre_d_`diag' = aer_nox_pre * tmp_diag_within_limit
+        gen aer_nox_diff_d_`diag' = aer_nox_diff * tmp_diag_within_limit
+
+        drop tmp*
+    }
+
 
     cap drop aer_pre_max
     egen aer_pre_max = rowmin($pre_var)    // for check in `sample'
