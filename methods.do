@@ -29,6 +29,8 @@ else {
 * global CHEMS nox co rog sox tsp
 global CHEMS nox
 
+global INV_DIST_CHEMS
+
 global interact_diagnoses
 
 global HOTZONE_ONLY = 0
@@ -129,6 +131,29 @@ prog def _gen_aermod_pre_post
     }
 end
 
+prog def _gen_inv_dist_pre_post
+    foreach chem in $INV_DIST_CHEMS {
+        foreach metric in invd nm {
+            egen `chem'_`metric'_pre_1 = rowmean(`chem'_1yr_`metric'2000)
+            egen `chem'_`metric'_pre_3 = rowmean(`chem'_1yr_`metric'1999 ///
+                                                 `chem'_1yr_`metric'2000)
+            egen `chem'_`metric'_pre_5 = rowmean(`chem'_1yr_`metric'1999 ///
+                                                 `chem'_1yr_`metric'2000)
+
+            egen `chem'_`metric'_post_1 = rowmean(`chem'_1yr_`metric'2001*)
+            egen `chem'_`metric'_post_3 = rowmean(`chem'_1yr_`metric'2001* ///
+                                                  `chem'_1yr_`metric'2002* ///
+                                                  `chem'_1yr_`metric'2003*)
+            egen `chem'_`metric'_post_5 = rowmean(`chem'_1yr_`metric'2001* ///
+                                                  `chem'_1yr_`metric'2002* ///
+                                                  `chem'_1yr_`metric'2003* ///
+                                                  `chem'_1yr_`metric'2004* ///
+                                                  `chem'_1yr_`metric'2005*)
+
+        }
+    }
+end
+
 prog def data_prep
     use $BENE_DATA
     drop state* county*
@@ -177,6 +202,8 @@ prog def data_prep
 
     * Merge in Aermod pre/post averages
     _gen_aermod_pre_post    // Gen file of pre/post aermod averages
+    _gen_inv_dist_pre_post
+
     foreach chem in $CHEMS {
         local filepath "${ZIPS_AERMOD_SYMM_ROOT}_`chem'.dta"
         di "Merging `chem'"
