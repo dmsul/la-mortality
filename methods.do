@@ -292,12 +292,18 @@ prog def main_reg
     local outcome_mean = `r(mean)'
 
     * Get sample means for treatment variables
-    unab full_x_list : $X
-    local tmp "`full_x_list'"
-    local X_num: list sizeof local(tmp)
-    if `X_num' == 2 {
-        local pre_var : word 2 of `tmp'
-        local post_var : word 1 of `tmp'
+    cap unab full_x_list : $X
+    if _rc == 0 {
+        local tmp "`full_x_list'"
+        local X_num: list sizeof local(tmp)
+        if `X_num' == 2 {
+            local pre_var : word 2 of `tmp'
+            local post_var : word 1 of `tmp'
+        }
+        else {
+            local pre_var aer_nox_pre
+            local post_var aer_nox_diff
+        }
     }
     else {
         local pre_var aer_nox_pre
