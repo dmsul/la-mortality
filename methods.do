@@ -41,7 +41,9 @@ global outcomes /// Health outcomes to examine
     majordepression_ever migraine_ever hypert anxiety
 global X aer_nox_diff aer_nox_pre        // X's of interest
 global W ///                           // Other controls
-    agebin_67-agebin_90 male ///
+    agebin_67-agebin_90 ///
+    agebin_67_male-agebin_90_male ///
+    male ///
     bg_pct_8th_or_less bg_pct_9th_to_12th bg_pct_some_coll bg_pct_assoc_degree ///
     bg_pct_bach_degree bg_pct_grad_degree ///
     bg_pct_black bg_pct_hispanic ///
@@ -193,6 +195,9 @@ prog def data_prep
         local i = `i' + 1
     }
     drop agebin_0
+    foreach var of varlist agebin* {
+        gen `var'_male = `var' * male
+    }
 
     * Merge in "Hotzone" flag
     di "Merging 'Hotzone' flag"
