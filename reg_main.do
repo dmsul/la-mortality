@@ -17,12 +17,12 @@ data_prep
 
 * Basic Specification
 global OUT_NAME "reg_main"          // Filename for results
-global X aermod_diff aermod_pre        // X's of interest
+global X aer_nox_diff aer_nox_pre        // X's of interest
 reg_loops                              // Change globals to affect regressions
 
 * Interact aermod_diff with age bins
 global OUT_NAME "reg_main_interact_age"
-global X c.aermod_diff#i.agebins aermod_pre
+global X c.aer_nox_diff#i.agebins aer_nox_pre        // X's of interest
 reg_loops
 
 cap log close

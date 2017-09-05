@@ -39,7 +39,7 @@ global outcomes /// Health outcomes to examine
     ami_ever alzh_ever copd_ever diabetes_ever hip_fracture_ever ///
     stroke_tia_ever cancer_lung_ever cancer_any_ever asthma_ever ///
     majordepression_ever migraine_ever hypert anxiety
-global X aermod_diff aermod_pre        // X's of interest
+global X aer_nox_diff aer_nox_pre        // X's of interest
 global W ///                           // Other controls
     agebin_67-agebin_90 male ///
     bg_pct_8th_or_less bg_pct_9th_to_12th bg_pct_some_coll bg_pct_assoc_degree ///
