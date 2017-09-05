@@ -248,11 +248,12 @@ prog def main_reg
     egen aer_pre_max = rowmin($pre_var)    // for check in `sample'
 
     * Sample restriction
+    local min_move_year = 2000 - `timespan'
     local max_move_year = 2000 + `timespan'
     cap drop sample
     gen sample = ///
         outcome_years_after_treat > 0 & ///  Didn't have 'outcome' before treatment
-        startyear_geo_movein < 1999 & ///    Moved in before 1999
+        startyear_geo_movein < `min_move_year' & ///    Moved in before 1999
         stayer_thru_year >= `max_move_year' & /// Didn't move out too soon
         enter_sample_year <= 2000 & ///      Observed in sample before treatment
         aer_pre_max > 0 & aer_pre_max < . & ///Non-zero pollution exposure
