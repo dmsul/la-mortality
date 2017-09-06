@@ -46,7 +46,7 @@ prog def main_reg
     foreach chem in $INV_DIST_CHEMS {
         foreach metric in invd nm {
             di "making `chem' `metric'"
-            gen `chem'_`metric'_pre = `chem'_`metric'_pre_`aermod_diff_band'
+            gen `chem'_`metric'_pre = `chem'_`metric'_pre_2
             gen `chem'_`metric'_diff = `chem'_`metric'_post_`aermod_diff_band' - `chem'_`metric'_pre
         }
     }
@@ -70,7 +70,7 @@ prog def main_reg
     egen aer_pre_max = rowmin($pre_var)    // for check in `sample'
 
     * Sample restriction
-    local min_move_year = 2000 - `timespan'
+    local min_move_year = 1999
     local max_move_year = 2000 + `timespan'
     cap drop sample
     gen sample = ///

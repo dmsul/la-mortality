@@ -91,6 +91,8 @@ prog def _gen_aermod_pre_post
 
         if "`chem'" == "nox" {
             egen aermod_`chem'_pre_1 = rowmean(aermod_`chem'_2000*)
+            egen aermod_`chem'_pre_2 = rowmean(aermod_`chem'_1999* ///
+                                               aermod_`chem'_2000*)
             egen aermod_`chem'_pre_3 = rowmean(aermod_`chem'_1998* ///
                                                aermod_`chem'_1999* ///
                                                aermod_`chem'_2000*)
@@ -102,6 +104,7 @@ prog def _gen_aermod_pre_post
         }
         else {
             egen aermod_`chem'_pre_1 = rowmean(aermod_`chem'_2000)
+            egen aermod_`chem'_pre_2 = rowmean(aermod_`chem'_2000)
             egen aermod_`chem'_pre_3 = rowmean(aermod_`chem'_2000)
             egen aermod_`chem'_pre_5 = rowmean(aermod_`chem'_2000)
         }
@@ -263,7 +266,7 @@ prog def main_reg
     cap drop aer_*_diff
     local aermod_diff_band = min(`timespan', 5)  // Max AERMOD diff is 5 years
     foreach chem in $CHEMS {
-        gen aer_`chem'_pre = aermod_`chem'_pre_`aermod_diff_band'
+        gen aer_`chem'_pre = aermod_`chem'_pre_2
         gen aer_`chem'_diff = aermod_`chem'_post_`aermod_diff_band' - aer_`chem'_pre
     }
 
@@ -285,7 +288,7 @@ prog def main_reg
     egen aer_pre_max = rowmin($pre_var)    // for check in `sample'
 
     * Sample restriction
-    local min_move_year = 2000 - `timespan'
+    local min_move_year = 1999
     local max_move_year = 2000 + `timespan'
     cap drop sample
     gen sample = ///
