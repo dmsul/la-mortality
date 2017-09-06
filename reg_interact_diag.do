@@ -12,7 +12,7 @@ run methods // Import functions, globals, etc.
 
 global interact_diagnoses /// Health outcomes to examine
     ami_ever alzh_ever copd_ever diabetes_ever hip_fracture_ever ///
-    stroke_tia_ever cancer_any_ever asthma_ever hypert 
+    stroke_tia_ever cancer_any_ever asthma_ever hypert_ever
 
 global outcomes death_date
 

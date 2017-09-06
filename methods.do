@@ -42,7 +42,7 @@ global outcomes /// Health outcomes to examine
     death_date ///
     ami_ever alzh_ever copd_ever diabetes_ever hip_fracture_ever ///
     stroke_tia_ever cancer_lung_ever cancer_any_ever asthma_ever ///
-    majordepression_ever migraine_ever hypert anxiety
+    majordepression_ever migraine_ever hypert_ever anxiety_ever
 global X aer_nox_diff aer_nox_pre        // X's of interest
 global W ///                           // Other controls
     agebin_67-agebin_90 ///
