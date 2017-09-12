@@ -10,7 +10,7 @@ set more off
 
 run methods // Import functions, globals, etc.
 
-global INV_DIST_CHEMS NO2
+global INV_DIST_CHEMS NO2 O3
 
 verify_out_path
 data_prep
@@ -89,6 +89,17 @@ prog def main_reg
         replace sample = sample * (death_years_after_treat > `timespan')
     }
 
+    foreach chem in $INV_DIST_CHEMS {
+        foreach metric in invd nm {
+            cap drop `chem'_`metric'_pre_bins
+            cap drop `chem'_`metric'_pre_bin_*
+            xtile `chem'_`metric'_pre_bins = `chem'_`metric'_pre if sample, n(10)
+            tab `chem'_`metric'_pre_bins, missing
+            tab `chem'_`metric'_pre_bins, gen(`chem'_`metric'_pre_bin_)
+            drop `chem'_`metric'_pre_bin_1
+        }
+    }
+
     *** Regression ***
 
     $reg_command outcome_within_limit $X $W if sample, cluster(blkgrp) // a(tract)
@@ -159,12 +170,10 @@ end
 
 * Basic Specification
 global OUT_NAME "reg_monitors_nk"
-foreach chem in NO2 {
-    foreach metric in invd nm {
-        global X `chem'_`metric'_diff `chem'_`metric'_pre
-        reg_loops `append'
-        local append append
-    }
+foreach metric in invd nm {
+    global X NO2_`metric'_diff NO2_`metric'_pre_bin_* O3_`metric'_diff O3_`metric'_pre_bin_*
+    reg_loops `append'
+    local append append
 }
 
 cap log close
