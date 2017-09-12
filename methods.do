@@ -1,4 +1,4 @@
-global FAKEDATA = 1
+global FAKEDATA = c(username) == "sullivan"
 
 *** File Paths
 if $FAKEDATA {
@@ -41,9 +41,10 @@ global timespans 1 3 5 10  // Time horizon for outcomes (e.g., 3-year mortality)
 global outcomes /// Health outcomes to examine
     death_date ///
     ami_ever alzh_ever copd_ever diabetes_ever hip_fracture_ever ///
-    stroke_tia_ever cancer_lung_ever cancer_any_ever asthma_ever ///
-    majordepression_ever migraine_ever hypert_ever anxiety_ever
-global X aer_nox_diff aer_nox_pre        // X's of interest
+    stroke_tia_ever asthma_ever ///
+    hypert_ever
+//cancer_lung_ever cancer_any_ever majordepression_ever migraine_ever anxiety_ever
+global X aer_nox_diff nox_pre_bin_*        // X's of interest
 global W ///                           // Other controls
     agebin_67-agebin_90 ///
     agebin_67_male-agebin_90_male ///
@@ -138,6 +139,8 @@ prog def _gen_inv_dist_pre_post
     foreach chem in $INV_DIST_CHEMS {
         foreach metric in invd nm {
             egen `chem'_`metric'_pre_1 = rowmean(`chem'_1yr_`metric'2000)
+            egen `chem'_`metric'_pre_2 = rowmean(`chem'_1yr_`metric'1999 ///
+                                                 `chem'_1yr_`metric'2000)
             egen `chem'_`metric'_pre_3 = rowmean(`chem'_1yr_`metric'1999 ///
                                                  `chem'_1yr_`metric'2000)
             egen `chem'_`metric'_pre_5 = rowmean(`chem'_1yr_`metric'1999 ///
@@ -219,6 +222,7 @@ prog def data_prep
     gen blkgrp = substr(block2000, 1, 12)
     gen tract = substr(blkgrp, 1, 11)
     drop block2000
+    cap drop bg_*       // There are already bg_* variables in the real data
     gen bg = blkgrp
     di "Merging Block Group info"
     merge m:1 bg using $BLOCKGROUP_INFO, keep(1 3) nogen
@@ -306,6 +310,16 @@ prog def main_reg
     if "`outcome'" != "death_date" {
         replace sample = sample * (death_years_after_treat > `timespan')
     }
+
+    foreach chem in $CHEMS {
+        cap drop aer_`chem'_pre_bins
+        cap drop aer_`chem'_pre_bin_*
+        xtile aer_`chem'_pre_bins = aer_`chem'_pre if sample, n(10)
+        tab aer_`chem'_pre_bins, missing
+        tab aer_`chem'_pre_bins, gen(aer_`chem'_pre_bin_)
+        drop aer_`chem'_pre_bin_1
+    }
+
 
     *** Regression ***
 
