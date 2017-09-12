@@ -39,6 +39,9 @@ def load_zips_aermod(chem='nox'):
     return zips_aermod
 
 
+
+
+
 def grids_wide(chem='nox'):
     if chem == 'nox':
         df = pd.read_pickle('../data/grids_aermod.pkl')
@@ -47,6 +50,34 @@ def grids_wide(chem='nox'):
     else:
         df = load_full_exposure('grid', 'aermod_{}'.format(chem), _rebuild=True)
         new_cols = ['{}_{}'.format(x[1], x[0]) for x in df.columns]
+
+    df.columns = new_cols
+
+    return df
+
+
+@load_or_build('../data/zips_invd_{}.dta', path_args=['chem'])
+def load_zips_invd(chem='nox'):
+    """ NOTE: Copy and past of `load_zips_aermod` """
+    df = grids_wide_invd(chem=chem)
+    utm = zip4_utms()
+
+    utm = utm.set_index(['utm_east', 'utm_north'])
+    utm = utm.drop(['utm_east_real', 'utm_north_real'], axis=1)
+
+    zips_aermod = df.join(utm, how='inner')
+
+    zips_aermod = zips_aermod.set_index('zip4')
+
+    zips_aermod = zips_aermod.astype(np.float32)
+
+    return zips_aermod
+
+
+def grids_wide_invd(chem='nox'):
+    df = load_full_exposure('grid', '{}'.format(chem))
+    df = df.unstack('quarter')
+    new_cols = ['{}_{}q{}'.format(x[1], x[0], x[2]) for x in df.columns]
 
     df.columns = new_cols
 
