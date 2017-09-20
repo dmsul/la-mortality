@@ -178,7 +178,7 @@ def load_full_exposure(geounit, model, **kwargs):
 
     if geounit == 'patzip':
         df = load_patzip_full_exposure(model, **kwargs)
-    elif model in ('interp', 'nox', 'ozone'):
+    elif model in ('interp', 'invd15_nox', 'invd15_ozone'):
         df = load_interp(geounit, model, **kwargs)
     else:
         df = _load_full_exposure_guts(geounit, model, **kwargs)
@@ -213,9 +213,9 @@ def load_electric_exposure(geounit, model, elec):
     return df
 
 
-@load_or_build(data_path('{}s_interp{}_{}-{}_{}.p'),
-               path_args=[0, 'radius', 'year0', 'yearT', 1])
-def load_interp(geounit, model, year0=1997, yearT=2005, radius=15):
+@load_or_build(data_path('{}s_{}_{}-{}.pkl'),
+               path_args=[0, 1, 'year0', 'yearT'])
+def load_interp(geounit, model, year0=1997, yearT=2005):
     """
     Load values of `model` for `geounit` that have been interpolated from
     actual monitor locations using inverse distance weighting.
@@ -225,15 +225,17 @@ def load_interp(geounit, model, year0=1997, yearT=2005, radius=15):
       the geounit's own aermod values.
     """
     # Load geounit's UTM
+    radius = int(model[4:6])
+    chem = model.split('_')[1]
     target_utm = load_geounit(geounit)[UTM].drop_duplicates()
 
     # Load interpolation source UTM, time, and value as Series
     if model == 'interp':
         source_df = load_full_exposure('monitor', 'aermod')
         source_df = source_df.stack('year').squeeze()
-    elif model in ('nox', 'ozone'):
+    elif model in ('invd15_nox', 'invd15_ozone'):
         timevars = ['year', 'quarter']
-        source_df = load_monitors()[UTM + timevars + [model]]
+        source_df = load_monitors()[UTM + timevars + [chem]]
         source_df = source_df.set_index(UTM + timevars).squeeze()
     else:
         raise NotImplementedError

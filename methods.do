@@ -3,31 +3,26 @@ global FAKEDATA = c(username) == "sullivan"
 *** File Paths
 if $FAKEDATA {
     global root_path ../data
-    global BENE_DATA $root_path/data_fake1                         // Core Medicare data
-    global ZIPS_AERMOD $root_path/zips_aermod                      // Core AERMOD data
-    global ZIPS_AERMOD_SYMM_ROOT $root_path/zips_aermod_symmetric   // Derived from AERMOD
-    global ZIPS_BLOCK2000 $root_path/zip4s_block2000.dta           // X-walk, zip4->block2000
-    global ZIPS_HOTZONE_FLAG $root_path/zips_coast_hotzone_flag.dta
-    global BLOCKGROUP_INFO $root_path/blockgroup_2000              // Demographic info
-    global OUT_PATH ..\out                                      // Folder for output
+    global BENE_DATA $root_path/data_fake1                          // Core Medicare data
+    global OUT_PATH ..\out                                          // Folder for output
 }
 else {
     global root_path Y:\Shares\CMS\Sullivan\Data
-    global BENE_DATA $root_path\data_real                          // Core Medicare data
-    global ZIPS_AERMOD $root_path\zips_aermod                      // Core AERMOD data
-    global ZIPS_AERMOD_SYMM_ROOT $root_path\zips_aermod_symmetric   // Derived from AERMOD
-    global ZIPS_BLOCK2000 $root_path\zip4s_block2000.dta           // X-walk, zip4->block2000
-    global ZIPS_HOTZONE_FLAG $root_path\zips_coast_hotzone_flag.dta
-    global BLOCKGROUP_INFO $root_path\blockgroup_2000              // Demographic info
-    global OUT_PATH Y:\Shares\CMS\Sullivan\Results                                  // Folder for output
+    global BENE_DATA $root_path\data_real                           // Core Medicare data
+    global OUT_PATH Y:\Shares\CMS\Sullivan\Results                  // Folder for output
 }
+global ZIPS_EXPOSURE_ROOT $root_path/zips_                          // Core AERMOD data
+global ZIPS_EXPOSURE_SYMM_ROOT $root_path/zips_symmetric            // Derived from AERMOD
+global ZIPS_BLOCK2000 $root_path/zip4s_block2000.dta                // X-walk, zip4->block2000
+global ZIPS_HOTZONE_FLAG $root_path/zips_coast_hotzone_flag.dta
+global BLOCKGROUP_INFO $root_path/blockgroup_2000                   // Demographic info
 
 
 ** Default Regression Specifications
 
 * global CHEMS nox napthalene ammonia benzene lead nickel arsenic cadmium formaldehyde chromium asbestos co rog sox tsp
 * global CHEMS nox co rog sox tsp
-global CHEMS nox
+global CHEMS aermod_nox
 
 global INV_DIST_CHEMS
 
@@ -44,8 +39,8 @@ global outcomes /// Health outcomes to examine
     stroke_tia_ever asthma_ever ///
     hypert_ever
 //cancer_lung_ever cancer_any_ever majordepression_ever migraine_ever anxiety_ever
-global X aer_nox_diff nox_pre_bin_*        // X's of interest
-global W ///                           // Other controls
+global X aermod_nox_diff aermod_nox_pre     // X's of interest
+global W ///                                // Other controls
     agebin_67-agebin_90 ///
     agebin_67_male-agebin_90_male ///
     male ///
@@ -58,7 +53,7 @@ global W ///                           // Other controls
     bg_pct_renter_occ bg_pct_vacant bg_med_house_value ///
     bg_med_hh_inc
 
-global pre_var aer_nox_pre
+global exposure_pre_var aermod_nox_pre
 
 global outopt bdec(5) sdec(5) bfmt(f) br asterisk(se)
 
@@ -73,11 +68,11 @@ prog def verify_out_path
 end
 
 
-prog def _gen_aermod_pre_post
+prog def _gen_exposure_pre_post
     * Create multi-year averages of AERMOD exposure centered around 2000/2001 shock.
 
     foreach chem in $CHEMS {
-        local filepath "${ZIPS_AERMOD_SYMM_ROOT}_`chem'.dta"
+        local filepath "${ZIPS_EXPOSURE_SYMM_ROOT}_`chem'.dta"
         * If file already exists, do nothing
         cap confirm file `filepath'
         if !_rc & 1 {
@@ -88,44 +83,34 @@ prog def _gen_aermod_pre_post
         preserve
         clear
 
-        use ${ZIPS_AERMOD}_`chem'
+        use ${ZIPS_EXPOSURE_ROOT}`chem'
 
-        if "`chem'" == "nox" {
-            egen aermod_`chem'_pre_1 = rowmean(aermod_`chem'_2000*)
-            egen aermod_`chem'_pre_2 = rowmean(aermod_`chem'_1999* ///
-                                               aermod_`chem'_2000*)
-            egen aermod_`chem'_pre_3 = rowmean(aermod_`chem'_1998* ///
-                                               aermod_`chem'_1999* ///
-                                               aermod_`chem'_2000*)
-            egen aermod_`chem'_pre_5 = rowmean(aermod_`chem'_1996* ///
-                                               aermod_`chem'_1997* ///
-                                               aermod_`chem'_1998* ///
-                                               aermod_`chem'_1999* ///
-                                               aermod_`chem'_2000*)
+        if inlist("`chem'", "aermod_nox", "invd15_nox", "invd15_ozone") {
+            egen `chem'_pre_1 = rowmean(`chem'_2000*)
+            egen `chem'_pre_2 = rowmean(`chem'_1999* `chem'_2000*)
+            egen `chem'_pre_3 = rowmean(`chem'_1998* `chem'_1999* `chem'_2000*)
+            egen `chem'_pre_5 = rowmean(`chem'_1996* `chem'_1997* ///
+                                        `chem'_1998* `chem'_1999* ///
+                                        `chem'_2000*)
         }
         else {
-            egen aermod_`chem'_pre_1 = rowmean(aermod_`chem'_2000)
-            egen aermod_`chem'_pre_2 = rowmean(aermod_`chem'_2000)
-            egen aermod_`chem'_pre_3 = rowmean(aermod_`chem'_2000)
-            egen aermod_`chem'_pre_5 = rowmean(aermod_`chem'_2000)
+            egen `chem'_pre_1 = rowmean(`chem'_2000)
+            egen `chem'_pre_2 = rowmean(`chem'_2000)
+            egen `chem'_pre_3 = rowmean(`chem'_2000)
+            egen `chem'_pre_5 = rowmean(`chem'_2000)
         }
 
-        egen aermod_`chem'_post_1 = rowmean(aermod_`chem'_2001*)
-        egen aermod_`chem'_post_3 = rowmean(aermod_`chem'_2001* ///
-                                            aermod_`chem'_2002* ///
-                                            aermod_`chem'_2003*)
-        egen aermod_`chem'_post_5 = rowmean(aermod_`chem'_2001* ///
-                                            aermod_`chem'_2002* ///
-                                            aermod_`chem'_2003* ///
-                                            aermod_`chem'_2004* ///
-                                            aermod_`chem'_2005*)
+        egen `chem'_post_1 = rowmean(`chem'_2001*)
+        egen `chem'_post_3 = rowmean(`chem'_2001* `chem'_2002* `chem'_2003*)
+        egen `chem'_post_5 = rowmean(`chem'_2001* `chem'_2002* ///
+                                     `chem'_2003* `chem'_2004* `chem'_2005*)
 
-        if "`chem'" == "nox" {
-            cap drop aermod*q*
+        if inlist("`chem'", "aermod_nox", "invd15_nox", "invd15_ozone") {
+            cap drop `chem'*q*
         }
         else {
-            cap drop aermod_`chem'_2*
-            cap drop aermod_`chem'_19*
+            cap drop `chem'_2*
+            cap drop `chem'_19*
         }
 
         tostring zip4, replace
@@ -207,11 +192,11 @@ prog def data_prep
 
 
     * Merge in Aermod pre/post averages
-    _gen_aermod_pre_post    // Gen file of pre/post aermod averages
+    _gen_exposure_pre_post    // Gen file of pre/post aermod averages
     _gen_inv_dist_pre_post
 
     foreach chem in $CHEMS {
-        local filepath "${ZIPS_AERMOD_SYMM_ROOT}_`chem'.dta"
+        local filepath "${ZIPS_EXPOSURE_SYMM_ROOT}_`chem'.dta"
         di "Merging `chem'"
         merge m:1 zip4 using `filepath', keep(1 3) nogen
     }
@@ -266,30 +251,30 @@ prog def main_reg
     gen outcome_within_limit = outcome_years_after_treat <= `timespan'
 
     * Create AERMOD variables based on timespan
-    cap drop aer_*_pre
-    cap drop aer_*_diff
-    local aermod_diff_band = min(`timespan', 5)  // Max AERMOD diff is 5 years
+    cap drop *_pre
+    cap drop *_diff
+    local exposure_diff_band = min(`timespan', 5)  // Max AERMOD diff is 5 years
     foreach chem in $CHEMS {
-        gen aer_`chem'_pre = aermod_`chem'_pre_2
-        gen aer_`chem'_diff = aermod_`chem'_post_`aermod_diff_band' - aer_`chem'_pre
+        gen `chem'_pre = `chem'_pre_2
+        gen `chem'_diff = `chem'_post_`exposure_diff_band' - `chem'_pre
     }
 
-    cap drop aer_nox_*_d_*
+    cap drop aermod_nox_*_d_*       // We only interact with `aermod_nox`
     foreach diag in $interact_diagnoses {
         gen tmp_years_after_treat = (`diag' - date("1/1/2001", "MDY")) / 365
         gen tmp_diag_within_limit = tmp_years_after_treat <= `timespan'
 
         cap drop aermod_pre_d_`diag'
         cap drop aermod_diff_d_`diag'
-        gen aer_nox_pre_d_`diag' = aer_nox_pre * tmp_diag_within_limit
-        gen aer_nox_diff_d_`diag' = aer_nox_diff * tmp_diag_within_limit
+        gen aer_nox_pre_d_`diag' = aermod_nox_pre * tmp_diag_within_limit
+        gen aer_nox_diff_d_`diag' = aermod_nox_diff * tmp_diag_within_limit
 
         drop tmp*
     }
 
 
-    cap drop aer_pre_max
-    egen aer_pre_max = rowmin($pre_var)    // for check in `sample'
+    cap drop exposure_pre_min
+    egen exposure_pre_min = rowmin($exposure_pre_var)    // for check in `sample'
 
     * Sample restriction
     local min_move_year = 1999
@@ -300,7 +285,7 @@ prog def main_reg
         startyear_geo_movein < `min_move_year' & ///    Moved in before 1999
         stayer_thru_year >= `max_move_year' & /// Didn't move out too soon
         enter_sample_year <= 2000 & ///      Observed in sample before treatment
-        aer_pre_max > 0 & aer_pre_max < . & ///Non-zero pollution exposure
+        exposure_pre_min > 0 & exposure_pre_min < . & ///Non-zero pollution exposure
         age_in_2000 >= 65 //                 At least 65 before treatment
 
     if $HOTZONE_ONLY {
@@ -312,12 +297,12 @@ prog def main_reg
     }
 
     foreach chem in $CHEMS {
-        cap drop aer_`chem'_pre_bins
-        cap drop aer_`chem'_pre_bin_*
-        xtile aer_`chem'_pre_bins = aer_`chem'_pre if sample, n(10)
-        tab aer_`chem'_pre_bins, missing
-        tab aer_`chem'_pre_bins, gen(aer_`chem'_pre_bin_)
-        drop aer_`chem'_pre_bin_1
+        cap drop `chem'_pre_bins
+        cap drop `chem'_pre_bin_*
+        xtile `chem'_pre_bins = `chem'_pre if sample, n(10)
+        tab `chem'_pre_bins, missing
+        tab `chem'_pre_bins, gen(`chem'_pre_bin_)
+        drop `chem'_pre_bin_1
     }
 
 
@@ -334,7 +319,7 @@ prog def main_reg
     count if startyear_geo_movein < 1999
     count if stayer_thru_year >= `max_move_year'
     count if enter_sample_year <= 2000
-    count if aer_pre_max > 0
+    count if exposure_pre_min > 0
     count if age_in_2000 >= 65
     count if hotzone == 1
 
@@ -361,13 +346,13 @@ prog def main_reg
             local post_var : word 1 of `tmp'
         }
         else {
-            local pre_var aer_nox_pre
-            local post_var aer_nox_diff
+            local pre_var aermod_nox_pre
+            local post_var aermod_nox_diff
         }
     }
     else {
-        local pre_var aer_nox_pre
-        local post_var aer_nox_diff
+        local pre_var aermod_nox_pre
+        local post_var aermod_nox_diff
     }
     summ `pre_var' if in_reg
     local pre_label = "Aermod pre mean"
@@ -377,8 +362,8 @@ prog def main_reg
     local post_label = "Aermod diff mean"
     local diff_mean = r(mean)
 
-    summ aer_*_pre if in_reg
-    summ aer_*_diff if in_reg
+    summ *_pre if in_reg
+    summ *_diff if in_reg
 
     outreg2 using "${OUT_PATH}/${OUT_NAME}.xls", excel `replace' ///
         ctitle("`outcome_label'") ///
