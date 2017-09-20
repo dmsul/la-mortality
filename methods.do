@@ -89,15 +89,11 @@ prog def _gen_exposure_pre_post
             egen `chem'_pre_1 = rowmean(`chem'_2000*)
             egen `chem'_pre_2 = rowmean(`chem'_1999* `chem'_2000*)
             egen `chem'_pre_3 = rowmean(`chem'_1998* `chem'_1999* `chem'_2000*)
-            egen `chem'_pre_5 = rowmean(`chem'_1996* `chem'_1997* ///
-                                        `chem'_1998* `chem'_1999* ///
-                                        `chem'_2000*)
         }
         else {
             egen `chem'_pre_1 = rowmean(`chem'_2000)
             egen `chem'_pre_2 = rowmean(`chem'_2000)
             egen `chem'_pre_3 = rowmean(`chem'_2000)
-            egen `chem'_pre_5 = rowmean(`chem'_2000)
         }
 
         egen `chem'_post_1 = rowmean(`chem'_2001*)
