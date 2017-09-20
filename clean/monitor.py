@@ -18,6 +18,8 @@ def load_monitors(year0=1997, yearT=2005, freq='q', fullcover=True):
     df = df[df['year'].isin(yearlist)]
     # Keep only good nox obs
     timevars = ['year', 'quarter'] if freq == 'q' else ['year']
+    if freq == 'q':
+        df['quarter'] = df['quarter'].astype(int)
 
     df = df[UTM + timevars + ['x', 'y', 'site', 'nox', 'ozone']]
     df = df[df['nox'].notnull()]
