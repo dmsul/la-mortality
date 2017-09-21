@@ -10,7 +10,7 @@ set more off
 
 run methods // Import functions, globals, etc.
 
-global CHEMS invd15_nox invd15_ozone
+global CHEMS invd15_nox
 global exposure_pre_var invd15_nox_pre
 
 verify_out_path

@@ -27,7 +27,8 @@ def load_zips_exposure(model='aermod_nox'):
 
 def grids_wide(model='aermod_nox'):
     df = load_full_exposure('grid', '{}'.format(model))
-    QUARTERLY_MODELS = ('aermod_nox', 'invd15_nox', 'invd15_ozone')
+    QUARTERLY_MODELS = ('aermod_nox', 'invd15_nox', 'invd15_ozone',
+                        'unif2_nox', 'tria5_nox')
     if model in QUARTERLY_MODELS:
         df = df.unstack('quarter')
         new_cols = ['{}_{}q{}'.format(x[1], x[0], x[2]) for x in df.columns]
@@ -40,4 +41,4 @@ def grids_wide(model='aermod_nox'):
 
 
 if __name__ == '__main__':
-    df = load_zips_exposure(model='invd15_ozone')
+    df = load_zips_exposure(model='tria5_nox')

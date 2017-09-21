@@ -85,7 +85,7 @@ prog def _gen_exposure_pre_post
 
         use ${ZIPS_EXPOSURE_ROOT}`chem'
 
-        if inlist("`chem'", "aermod_nox", "invd15_nox", "invd15_ozone") {
+        if inlist("`chem'", "aermod_nox", "invd15_nox", "invd15_ozone", "unif2_nox", "tria5_nox") {
             egen `chem'_pre_1 = rowmean(`chem'_2000*)
             egen `chem'_pre_2 = rowmean(`chem'_1999* `chem'_2000*)
             egen `chem'_pre_3 = rowmean(`chem'_1998* `chem'_1999* `chem'_2000*)
@@ -101,7 +101,7 @@ prog def _gen_exposure_pre_post
         egen `chem'_post_5 = rowmean(`chem'_2001* `chem'_2002* ///
                                      `chem'_2003* `chem'_2004* `chem'_2005*)
 
-        if inlist("`chem'", "aermod_nox", "invd15_nox", "invd15_ozone") {
+        if inlist("`chem'", "aermod_nox", "invd15_nox", "invd15_ozone", "unif2_nox", "tria5_nox") {
             cap drop `chem'*q*
         }
         else {
