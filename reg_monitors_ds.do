@@ -1,5 +1,5 @@
-*capture log close
-*log using Y:\Shares\CMS\Sullivan\Logs\reg_main_log_6_25_17, text replace
+capture log close
+* log using Y:\Shares\CMS\Sullivan\Logs\reg_monitors_ds, text replace
 
 /*
 Regress "heath outcome realized w/in X years of pollution shock" on change in

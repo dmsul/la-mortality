@@ -10,7 +10,7 @@ set more off
 
 run methods // Import functions, globals, etc.
 
-global INV_DIST_CHEMS NO2 O3
+global INV_DIST_CHEMS NO2 O3 pm25
 
 verify_out_path
 data_prep
@@ -33,8 +33,8 @@ prog def main_reg
     cap drop aer_*_diff
     local aermod_diff_band = min(`timespan', 5)  // Max AERMOD diff is 5 years
     foreach chem in $CHEMS {
-        gen aer_`chem'_pre = aermod_`chem'_pre_`aermod_diff_band'
-        gen aer_`chem'_diff = aermod_`chem'_post_`aermod_diff_band' - aer_`chem'_pre
+        gen aer_`chem'_pre = `chem'_pre_`aermod_diff_band'
+        gen aer_`chem'_diff = `chem'_post_`aermod_diff_band' - aer_`chem'_pre
     }
 
     * Create monitor variables based on timespan
@@ -66,8 +66,9 @@ prog def main_reg
     }
     */
 
-    cap drop aer_pre_max
-    egen aer_pre_max = rowmin($pre_var)    // for check in `sample'
+    cap drop aer_pre_min
+    local exposure_pre_var : word 1 of $X
+    egen aer_pre_min = rowmin(`exposure_pre_var')    // for check in `sample'
 
     * Sample restriction
     local min_move_year = 1999
@@ -78,7 +79,7 @@ prog def main_reg
         startyear_geo_movein < `min_move_year' & ///    Moved in before 1999
         stayer_thru_year >= `max_move_year' & /// Didn't move out too soon
         enter_sample_year <= 2000 & ///      Observed in sample before treatment
-        aer_pre_max > 0 & aer_pre_max < . & ///Non-zero pollution exposure
+        aer_pre_min > 0 & aer_pre_min < . & ///Non-zero pollution exposure
         age_in_2000 >= 65 //                 At least 65 before treatment
 
     if $HOTZONE_ONLY {
@@ -89,14 +90,16 @@ prog def main_reg
         replace sample = sample * (death_years_after_treat > `timespan')
     }
 
-    foreach chem in $INV_DIST_CHEMS {
-        foreach metric in invd nm {
-            cap drop `chem'_`metric'_pre_bins
-            cap drop `chem'_`metric'_pre_bin_*
-            xtile `chem'_`metric'_pre_bins = `chem'_`metric'_pre if sample, n(10)
-            tab `chem'_`metric'_pre_bins, missing
-            tab `chem'_`metric'_pre_bins, gen(`chem'_`metric'_pre_bin_)
-            drop `chem'_`metric'_pre_bin_1
+    if 0 {
+        foreach chem in $INV_DIST_CHEMS {
+            foreach metric in invd nm {
+                cap drop `chem'_`metric'_pre_bins
+                cap drop `chem'_`metric'_pre_bin_*
+                xtile `chem'_`metric'_pre_bins = `chem'_`metric'_pre if sample, n(10)
+                tab `chem'_`metric'_pre_bins, missing
+                tab `chem'_`metric'_pre_bins, gen(`chem'_`metric'_pre_bin_)
+                drop `chem'_`metric'_pre_bin_1
+            }
         }
     }
 
@@ -113,7 +116,7 @@ prog def main_reg
     count if startyear_geo_movein < 1999
     count if stayer_thru_year >= `max_move_year'
     count if enter_sample_year <= 2000
-    count if aer_pre_max > 0
+    count if aer_pre_min > 0
     count if age_in_2000 >= 65
     count if hotzone == 1
 
@@ -135,14 +138,8 @@ prog def main_reg
     if _rc == 0 {
         local tmp "`full_x_list'"
         local X_num: list sizeof local(tmp)
-        if `X_num' == 2 {
-            local pre_var : word 2 of `tmp'
-            local post_var : word 1 of `tmp'
-        }
-        else {
-            local pre_var aer_nox_pre
-            local post_var aer_nox_diff
-        }
+        local pre_var : word 1 of `tmp'
+        local post_var : word 2 of `tmp'
     }
     else {
         local pre_var aer_nox_pre
@@ -169,9 +166,21 @@ end
 ** Regressions
 
 * Basic Specification
+local append
 global OUT_NAME "reg_monitors_nk"
 foreach metric in invd nm {
-    global X NO2_`metric'_diff NO2_`metric'_pre_bin_* O3_`metric'_diff O3_`metric'_pre_bin_*
+    foreach poll in pm25 NO2 O3 {
+        global X `poll'_`metric'_pre `poll'_`metric'_diff 
+        reg_loops `append'
+        local append append
+    }
+}
+
+foreach metric in invd nm {
+    global X
+    foreach poll in pm25 NO2 O3 {
+        global X $X `poll'_`metric'_pre `poll'_`metric'_diff 
+    }
     reg_loops `append'
     local append append
 }
