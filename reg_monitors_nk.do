@@ -7,10 +7,13 @@ pollution exposure as measured by AERMOD.
 */
 clear all
 set more off
+set trace on
 
 run methods // Import functions, globals, etc.
 
 global INV_DIST_CHEMS NO2 O3 pm25
+global CHEMS
+
 
 verify_out_path
 data_prep
