@@ -156,8 +156,8 @@ prog def main_reg
     local post_label = "Aermod diff mean"
     local diff_mean = r(mean)
 
-    summ aer_*_pre if in_reg
-    summ aer_*_diff if in_reg
+    summ *_pre if in_reg
+    summ *_diff if in_reg
 
     outreg2 using "${OUT_PATH}/${OUT_NAME}.xls", excel `replace' ///
         ctitle("`outcome_label'") ///
